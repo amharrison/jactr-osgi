@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>org.jactr.osgi.distro</name>
+	<name>org.jactr.distro</name>
 	<comment></comment>
 	<projects>
 	</projects>

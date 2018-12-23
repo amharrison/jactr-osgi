@@ -1,0 +1,19 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: jACT-R Threaded Module
+Bundle-SymbolicName: org.jactr.modules.threaded;singleton:=true
+Bundle-Version: 2.5.1.qualifier
+Require-Bundle: org.apache.commons.logging,
+ org.jactr.core;bundle-version="2.5.1",
+ org.commonreality.time;bundle-version="1.5.1",
+ org.commonreality.api;bundle-version="1.5.1",
+ org.jactr.io;bundle-version="2.5.1"
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+Automatic-Module-Name: org.commonreality.osgi
+Eclipse-BuddyPolicy: registered
+Eclipse-RegisterBuddy: org.apache.log4j
+Bundle-ClassPath: .
+Export-Package: org.jactr.modules.threaded.goal,
+ org.jactr.modules.threaded.goal.buffer,
+ org.jactr.modules.threaded.io,
+ org.jactr.modules.threaded.procedural

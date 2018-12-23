@@ -1,0 +1,24 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: jACT-R for OSGi Environments
+Bundle-SymbolicName: org.jactr.osgi;singleton:=true
+Bundle-Version: 2.5.1.qualifier
+Bundle-Activator: org.jactr.osgi.Activator
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+Automatic-Module-Name: org.jactr.osgi
+Import-Package: org.osgi.framework;version="1.3.0"
+Bundle-ActivationPolicy: lazy
+Eclipse-BuddyPolicy: registered
+Eclipse-RegisterBuddy: org.commonreality.osgi
+Require-Bundle: org.eclipse.equinox.registry,
+ org.eclipse.core.runtime,
+ org.apache.commons.logging,
+ org.apache.commons.lang;bundle-version="2.6.0",
+ org.apache.commons.cli;bundle-version="1.2.0",
+ org.apache.commons.collections;bundle-version="3.2.2",
+ org.eclipse.collections;bundle-version="9.2.0",
+ org.apache.commons.math;bundle-version="2.1.0",
+ org.jactr.core;bundle-version="2.5.1",
+ org.jactr.io;bundle-version="2.5.1",
+ org.jactr.tools;bundle-version="2.5.1"
+Bundle-ClassPath: .
