@@ -13,6 +13,6 @@ Maven POMs that will generate OSGi artifacts via Tycho. These depend upon the st
 * Button: Add
 * Name: jACT-R Composite Site, URL http://jact-r.org/update2/release
 * Turn off Group items by category
-* Select all jACT-R packages
+* Select all the jACT-R and CommonReality packages
 * Button: Next
 4. Try the tutorials
