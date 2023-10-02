@@ -9,18 +9,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.antlr.runtime.tree.CommonTree;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+ 
+import org.slf4j.LoggerFactory;
 import org.jactr.core.utils.collections.FastListFactory;
+import org.jactr.io2.compilation.ICompilationUnit;
 
 public class ParameterSetModifier implements IParameterSetModifier
 {
   /**
    * Logger definition
    */
-  static private final transient Log LOGGER = LogFactory
-                                                .getLog(ParameterSetModifier.class);
+  static private final transient org.slf4j.Logger LOGGER = LoggerFactory
+                                                .getLogger(ParameterSetModifier.class);
 
   private final List<IParameterModifier> _modifiers;
 
@@ -62,7 +62,7 @@ public class ParameterSetModifier implements IParameterSetModifier
     return Collections.unmodifiableList(_parameterValues);
   }
 
-  public void setParameter(CommonTree modelDescriptor, int parameterValueIndex)
+  public void setParameter(ICompilationUnit modelDescriptor, int parameterValueIndex)
   {
     if (parameterValueIndex >= _parameterValues.size())
     {
@@ -84,7 +84,7 @@ public class ParameterSetModifier implements IParameterSetModifier
     return rtn;
   }
 
-  public void setParameter(CommonTree modelDescriptor, String parameterValue)
+  public void setParameter(ICompilationUnit modelDescriptor, String parameterValue)
   {
     int index = _parameterValues.indexOf(parameterValue);
     setParameter(modelDescriptor, index);

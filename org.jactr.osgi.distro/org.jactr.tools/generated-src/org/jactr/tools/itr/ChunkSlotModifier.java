@@ -9,26 +9,27 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import org.antlr.runtime.tree.CommonTree;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.io.antlr3.builder.JACTRBuilder;
 import org.jactr.io.antlr3.misc.ASTSupport;
+import org.jactr.io2.compilation.ICompilationUnit;
+import org.slf4j.LoggerFactory;
 
 public class ChunkSlotModifier extends AbstractParameterModifier
 {
   /**
    * Logger definition
    */
-  static private final transient Log LOGGER = LogFactory
-                                                .getLog(ChunkSlotModifier.class);
+  static private final transient org.slf4j.Logger LOGGER = LoggerFactory
+                                                .getLogger(ChunkSlotModifier.class);
 
   static public final String   CHUNK_PATTERN     = "ChunkPattern";
 
   static public final String   CHUNKTYPE_PATTERN = "ChunkTypePattern";
 
-  private Pattern              _chunk;
+  protected Pattern                               _chunk;
 
-  private Pattern              _chunkType        = Pattern.compile(".*");
+  protected Pattern                               _chunkType        = Pattern
+      .compile(".*");
 
   @Override
   public String getParameterDisplayName()
@@ -82,9 +83,16 @@ public class ChunkSlotModifier extends AbstractParameterModifier
       super.setParameter(key, value);
   }
   
-  
-
   @Override
+  protected void setParameter(ICompilationUnit modelDescriptor,
+      String parameter, String value)
+  {
+    if (modelDescriptor.getAST() instanceof CommonTree)
+      setParameter((CommonTree) modelDescriptor.getAST(), parameter, value);
+    else
+      throw new RuntimeException("not implemented yet");
+  }
+  
   protected void setParameter(CommonTree modelDescriptor, String parameter,
       String value)
   {
@@ -121,7 +129,7 @@ public class ChunkSlotModifier extends AbstractParameterModifier
               slotDesc.addChild(support.create(JACTRBuilder.STRING, value));
             }
           }
-      }    
+      }
   }
 
 }

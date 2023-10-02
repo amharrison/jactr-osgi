@@ -16,8 +16,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.antlr.runtime.tree.CommonTree;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.model.IModel;
 import org.jactr.core.runtime.ACTRRuntime;
 import org.jactr.core.utils.parameter.IParameterized;
@@ -26,21 +24,23 @@ import org.jactr.entry.iterative.TerminateIterativeRunException;
 import org.jactr.io.antlr3.misc.ASTSupport;
 import org.jactr.io.generator.CodeGeneratorFactory;
 import org.jactr.io.generator.ICodeGenerator;
+import org.jactr.io2.compilation.ICompilationUnit;
 import org.jactr.tools.itr.IParameterModifier;
 import org.jactr.tools.itr.IParameterSetModifier;
 import org.jactr.tools.itr.LongitudinalParameterSetModifier;
 import org.jactr.tools.itr.ortho.impl.Slice;
 import org.jactr.tools.itr.ortho.impl.SliceAnalysis;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 
-public class OrthogonalSliceAnalyzer implements IIterativeRunListener,
-    IParameterized
+public class OrthogonalSliceAnalyzer
+    implements IIterativeRunListener, IParameterized
 {
   /**
    * Logger definition
    */
-  static private transient Log                  LOGGER          = LogFactory
-                                                                    .getLog(OrthogonalSliceAnalyzer.class);
+  static private transient org.slf4j.Logger     LOGGER          = LoggerFactory
+      .getLogger(OrthogonalSliceAnalyzer.class);
 
   static public final String                    URI             = "ConfigURL";
 
@@ -131,7 +131,8 @@ public class OrthogonalSliceAnalyzer implements IIterativeRunListener,
   }
 
   public void preBuild(int currentRunIndex, int totalRuns,
-      Collection<CommonTree> modelDescriptors) throws TerminateIterativeRunException
+      Collection<ICompilationUnit> modelDescriptors)
+      throws TerminateIterativeRunException
   {
     /*
      * set the parameters
@@ -146,7 +147,7 @@ public class OrthogonalSliceAnalyzer implements IIterativeRunListener,
     if (_longitudinalModifier == null)
       for (Map.Entry<String, Object> parameter : slice.getParameterValues()
           .entrySet())
-        for (CommonTree modelDescriptor : modelDescriptors)
+        for (ICompilationUnit modelDescriptor : modelDescriptors)
         {
           IParameterModifier pm = _parameterModifiers.get(parameter.getKey());
           if (pm == null) continue;
@@ -157,15 +158,16 @@ public class OrthogonalSliceAnalyzer implements IIterativeRunListener,
 
       Map<String, Object> parameters = slice.getParameterValues();
       for (Map.Entry<String, Object> parameter : parameters.entrySet())
-        if (parameter.getKey().equals(
-            _longitudinalModifier.getParameterDisplayName())
-            || _longitudinalModifier.isFirstSlice(parameters.get(
-                _longitudinalModifier.getParameterDisplayName()).toString()))
-          for (CommonTree modelDescriptor : modelDescriptors)
+        if (parameter.getKey()
+            .equals(_longitudinalModifier.getParameterDisplayName())
+            || _longitudinalModifier.isFirstSlice(
+                parameters.get(_longitudinalModifier.getParameterDisplayName())
+                    .toString()))
+          for (ICompilationUnit modelDescriptor : modelDescriptors)
           {
-            IParameterModifier pm = _parameterModifiers.get(parameter.getKey());
-            if (pm == null) continue;
-            pm.setParameter(modelDescriptor, parameter.getValue().toString());
+          IParameterModifier pm = _parameterModifiers.get(parameter.getKey());
+          if (pm == null) continue;
+          pm.setParameter(modelDescriptor, parameter.getValue().toString());
           }
     }
 
@@ -174,23 +176,26 @@ public class OrthogonalSliceAnalyzer implements IIterativeRunListener,
      */
     if (slice.getFirstIteration() == currentRunIndex)
     {
-      SliceAnalysis analysis = (SliceAnalysis) getSliceAnalysis(currentRunIndex);
+      SliceAnalysis analysis = (SliceAnalysis) getSliceAnalysis(
+          currentRunIndex);
       File sliceDir = new File(_reportRoot, "" + slice.getId());
       File modelsDir = new File(sliceDir, "models");
       modelsDir.mkdirs();
 
-      ICodeGenerator generator = CodeGeneratorFactory.getCodeGenerator("jactr");
-      for (CommonTree model : modelDescriptors)
-        try
+      ICodeGenerator generator = CodeGeneratorFactory
+          .getCodeGenerator("jactrx");
+      for (ICompilationUnit modelDesc : modelDescriptors)
+        if (modelDesc.getAST() instanceof CommonTree) try
         {
+          CommonTree model = (CommonTree) modelDesc.getAST();
           String modelName = ASTSupport.getName(model);
           File fp = File.createTempFile("model-", ".jactr", modelsDir);
           PrintWriter pw = new PrintWriter(new FileWriter(fp));
           for (StringBuilder line : generator.generate(model, true))
             pw.println(line);
           pw.close();
-          analysis
-              .addModel(modelName, modelsDir.getName() + "/" + fp.getName());
+          analysis.addModel(modelName,
+              modelsDir.getName() + "/" + fp.getName());
         }
         catch (IOException ioe)
         {
@@ -221,8 +226,8 @@ public class OrthogonalSliceAnalyzer implements IIterativeRunListener,
   {
     try
     {
-      _report = new PrintWriter(new FileWriter(new File(_reportRoot,
-          "report.orthoxml")));
+      _report = new PrintWriter(
+          new FileWriter(new File(_reportRoot, "report.orthoxml")));
     }
     catch (IOException e)
     {
@@ -233,8 +238,9 @@ public class OrthogonalSliceAnalyzer implements IIterativeRunListener,
      * dump the header
      */
     _report.print("<analyses date=\"");
-    _report.print(DateFormat.getDateTimeInstance(DateFormat.SHORT,
-        DateFormat.LONG).format(new Date()));
+    _report
+        .print(DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.LONG)
+            .format(new Date()));
     _report.print("\" name=\"");
     _report.print(_reportName);
     _report.println("\">");
@@ -289,7 +295,8 @@ public class OrthogonalSliceAnalyzer implements IIterativeRunListener,
     {
       ISlice slice = analysis.getSlice();
       if (slice.getFirstIteration() <= currentRun
-          && currentRun <= slice.getLastIteration()) return analysis;
+          && currentRun <= slice.getLastIteration())
+        return analysis;
     }
     throw new IllegalStateException("No slice associated with " + currentRun);
   }
@@ -311,10 +318,9 @@ public class OrthogonalSliceAnalyzer implements IIterativeRunListener,
 
     long averageBlockSize = totalRuns / totalSize;
 
-    if (averageBlockSize == 0)
-      throw new RuntimeException(
-          "Insufficient trials to explore parameter space, need at least "
-              + totalSize);
+    if (averageBlockSize == 0) throw new RuntimeException(
+        "Insufficient trials to explore parameter space, need at least "
+            + totalSize);
 
     _reportRoot = new File(System.getProperty("user.dir"), "report");
     _reportRoot.mkdirs();
@@ -342,12 +348,12 @@ public class OrthogonalSliceAnalyzer implements IIterativeRunListener,
        */
       for (Map.Entry<String, Long> entry : currentIndicies.entrySet())
       {
-        IParameterModifier parameterModifier = _parameterModifiers.get(entry
-            .getKey());
+        IParameterModifier parameterModifier = _parameterModifiers
+            .get(entry.getKey());
         int parameterValueIndex = entry.getValue().intValue();
 
-        slice.setProperty(entry.getKey(), parameterModifier
-            .getParameterValues().get(parameterValueIndex));
+        slice.setProperty(entry.getKey(),
+            parameterModifier.getParameterValues().get(parameterValueIndex));
 
         if (parameterModifier instanceof IParameterSetModifier)
         {
@@ -406,38 +412,36 @@ public class OrthogonalSliceAnalyzer implements IIterativeRunListener,
 
   public void setParameter(String key, String value)
   {
-    if (URI.equalsIgnoreCase(key))
-      try
+    if (URI.equalsIgnoreCase(key)) try
+    {
+      URI uri = null;
+      URL resource = getClass().getClassLoader().getResource(value);
+
+      if (resource != null)
+        uri = resource.toURI();
+      else
       {
-        URI uri = null;
-        URL resource = getClass().getClassLoader().getResource(value);
-
-        if (resource != null)
-          uri = resource.toURI();
-        else
-        {
-          uri = new URI(value);
-          if (!uri.isAbsolute())
-            uri = new File(System.getProperty("user.dir")).toURI().resolve(
-                value);
-        }
-
-        Document doc = Parser.load(uri);
-        for (ISliceAnalyzer analyzer : Parser.buildAnalyzers(doc))
-          add(analyzer);
-
-        for (IParameterModifier modifier : Parser.buildModifiers(doc))
-          add(modifier);
-
-        for (ISliceIntegrator integrator : Parser.buildIntegrators(doc))
-          add(integrator);
-
-        _reportName = doc.getDocumentElement().getAttribute("name");
+        uri = new URI(value);
+        if (!uri.isAbsolute())
+          uri = new File(System.getProperty("user.dir")).toURI().resolve(value);
       }
-      catch (Exception e)
-      {
-        throw new RuntimeException("Could not configure from " + value, e);
-      }
+
+      Document doc = Parser.load(uri);
+      for (ISliceAnalyzer analyzer : Parser.buildAnalyzers(doc))
+        add(analyzer);
+
+      for (IParameterModifier modifier : Parser.buildModifiers(doc))
+        add(modifier);
+
+      for (ISliceIntegrator integrator : Parser.buildIntegrators(doc))
+        add(integrator);
+
+      _reportName = doc.getDocumentElement().getAttribute("name");
+    }
+    catch (Exception e)
+    {
+      throw new RuntimeException("Could not configure from " + value, e);
+    }
   }
 
   static private Map<String, Long> computeIndicies(long linearOffset,
@@ -471,7 +475,8 @@ public class OrthogonalSliceAnalyzer implements IIterativeRunListener,
     return Collections.unmodifiableMap(indicies);
   }
 
-  public void preLoad(int currentRunIndex, int totalRuns) throws TerminateIterativeRunException
+  public void preLoad(int currentRunIndex, int totalRuns)
+      throws TerminateIterativeRunException
   {
     ISlice slice = getSlice(currentRunIndex);
 

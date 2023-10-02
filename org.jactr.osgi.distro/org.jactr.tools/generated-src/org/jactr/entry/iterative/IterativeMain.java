@@ -24,15 +24,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.antlr.runtime.tree.CommonTree;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.concurrent.ExecutorServices;
 import org.jactr.core.model.IModel;
 import org.jactr.core.model.event.ModelEvent;
@@ -41,6 +39,8 @@ import org.jactr.core.runtime.ACTRRuntime;
 import org.jactr.core.runtime.controller.IController;
 import org.jactr.core.runtime.event.IACTRRuntimeListener;
 import org.jactr.io.environment.EnvironmentParser;
+import org.jactr.io2.compilation.ICompilationUnit;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -54,8 +54,15 @@ public class IterativeMain
   /**
    * logger definition
    */
-  static private final Log  LOGGER        = LogFactory
-                                              .getLog(IterativeMain.class);
+  static private final transient org.slf4j.Logger  LOGGER        = LoggerFactory
+                                              .getLogger(IterativeMain.class);
+
+  static private int                              _iteration = -1;
+
+  static public boolean isRunning()
+  {
+    return _iteration != -1;
+  }
 
   static private final long SECONDS       = 1000;
 
@@ -104,6 +111,8 @@ public class IterativeMain
       final PrintWriter log) throws TerminateIterativeRunException
   {
 
+    _iteration = index;
+
     ExecutorServices.initialize();
 
     if (LOGGER.isDebugEnabled())
@@ -129,13 +138,14 @@ public class IterativeMain
      * first we use the environment to load all the model descriptors
      */
     EnvironmentParser ep = new EnvironmentParser();
-    Collection<CommonTree> modelDescriptors = ep.getModelDescriptors(
+    Map<String, ICompilationUnit> modelDescriptors = ep
+        .getModelDescriptors(
         environment, envURL);
 
     for (IIterativeRunListener listener : listeners)
       try
       {
-        listener.preBuild(index, total, modelDescriptors);
+        listener.preBuild(index, total, modelDescriptors.values());
       }
       catch (TerminateIterativeRunException tire)
       {

@@ -14,14 +14,14 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.antlr.runtime.tree.CommonTree;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.model.IModel;
 import org.jactr.io.generator.CodeGeneratorFactory;
 import org.jactr.io.generator.ICodeGenerator;
 import org.jactr.io.resolver.ASTResolver;
+import org.jactr.io2.compilation.ICompilationUnit;
 import org.jactr.tools.itr.ortho.ISlice;
 import org.jactr.tools.itr.ortho.ISliceListener;
+import org.slf4j.LoggerFactory;
 
 /**
  * saves models of terminal runs and restores them to the run directory so that
@@ -35,8 +35,8 @@ public class LongitudinalParameterSetModifier extends ParameterSetModifier
   /**
    * Logger definition
    */
-  static private final transient Log LOGGER         = LogFactory
-                                                        .getLog(LongitudinalParameterSetModifier.class);
+  static private final transient org.slf4j.Logger LOGGER         = LoggerFactory
+                                                        .getLogger(LongitudinalParameterSetModifier.class);
 
   static private String              TEMP_DIRECTORY = ".longitudinal";
 
@@ -79,7 +79,7 @@ public class LongitudinalParameterSetModifier extends ParameterSetModifier
    */
   public void copyModels(Collection<IModel> models, long iteration)
   {
-    ICodeGenerator generator = CodeGeneratorFactory.getCodeGenerator("jactr");
+    ICodeGenerator generator = CodeGeneratorFactory.getCodeGenerator("jactrx");
     Collection<File> serialized = new ArrayList<File>(_nameToFile.size());
     for (IModel model : models)
       try
@@ -128,7 +128,7 @@ public class LongitudinalParameterSetModifier extends ParameterSetModifier
   }
 
   @Override
-  public void setParameter(CommonTree modelDescriptor, int parameterValueIndex)
+  public void setParameter(ICompilationUnit modelDescriptor, int parameterValueIndex)
   {
     super.setParameter(modelDescriptor, parameterValueIndex);
 

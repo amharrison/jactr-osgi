@@ -6,24 +6,33 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import org.antlr.runtime.tree.CommonTree;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.io.antlr3.builder.JACTRBuilder;
 import org.jactr.io.antlr3.misc.ASTSupport;
+import org.jactr.io2.compilation.ICompilationUnit;
+import org.slf4j.LoggerFactory;
 
 public class ProductionParameterModifier extends AbstractParameterModifier
 {
   /**
    * Logger definition
    */
-  static private transient Log LOGGER             = LogFactory
-                                                      .getLog(ProductionParameterModifier.class);
+  static private transient org.slf4j.Logger LOGGER             = LoggerFactory
+                                                      .getLogger(ProductionParameterModifier.class);
 
   static public final String   PRODUCTION_PATTERN = "ProductionPattern";
 
-  private Pattern              _production;
+  protected Pattern                         _production;
 
   @Override
+  protected void setParameter(ICompilationUnit modelDescriptor,
+      String parameter, String value)
+  {
+    if (modelDescriptor.getAST() instanceof CommonTree)
+      setParameter((CommonTree) modelDescriptor.getAST(), parameter, value);
+    else
+      throw new RuntimeException("not implemented yet");
+  }
+
   protected void setParameter(CommonTree modelDescriptor, String parameter,
       String value)
   {

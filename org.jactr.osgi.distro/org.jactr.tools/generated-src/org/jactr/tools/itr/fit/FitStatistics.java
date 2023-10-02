@@ -4,16 +4,15 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.commons.math.stat.regression.SimpleRegression;
+import org.apache.commons.math3.stat.regression.SimpleRegression;
+import org.slf4j.LoggerFactory;
 
 public class FitStatistics
 {
   /**
    * Logger definition
    */
-  static private transient Log LOGGER = LogFactory.getLog(FitStatistics.class);
+  static private transient org.slf4j.Logger LOGGER = LoggerFactory.getLogger(FitStatistics.class);
 
   private double _rmse;
 

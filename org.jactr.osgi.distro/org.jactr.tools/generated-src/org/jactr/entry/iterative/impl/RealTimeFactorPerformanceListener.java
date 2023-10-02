@@ -20,9 +20,8 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import org.antlr.runtime.tree.CommonTree;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+ 
+import org.slf4j.LoggerFactory;
 import org.jactr.core.concurrent.ExecutorServices;
 import org.jactr.core.model.IModel;
 import org.jactr.core.model.event.IModelListener;
@@ -32,6 +31,7 @@ import org.jactr.core.utils.parameter.IParameterized;
 import org.jactr.core.utils.parameter.ParameterHandler;
 import org.jactr.entry.iterative.IIterativeRunListener;
 import org.jactr.entry.iterative.TerminateIterativeRunException;
+import org.jactr.io2.compilation.ICompilationUnit;
 
 /**
  * @author developer
@@ -43,8 +43,8 @@ public class RealTimeFactorPerformanceListener implements
    * Logger definition
    */
 
-  static private final transient Log LOGGER     = LogFactory
-                                                    .getLog(RealTimeFactorPerformanceListener.class);
+  static private final transient org.slf4j.Logger LOGGER     = LoggerFactory
+                                                    .getLogger(RealTimeFactorPerformanceListener.class);
 
   static public final String         ROW_HEADER = "RowHeader";
 
@@ -112,12 +112,12 @@ public class RealTimeFactorPerformanceListener implements
 
   /**
    * @see org.jactr.entry.iterative.IIterativeRunListener#preBuild(int, int,
-   *      java.util.Collection)
+   *      Collection)
    */
   public void preBuild(@SuppressWarnings("unused")
   int currentRunIndex, @SuppressWarnings("unused")
   int totalRuns, @SuppressWarnings("unused")
-  Collection<CommonTree> modelDescriptors) throws TerminateIterativeRunException
+  Collection<ICompilationUnit> modelDescriptors) throws TerminateIterativeRunException
   {
 
   }

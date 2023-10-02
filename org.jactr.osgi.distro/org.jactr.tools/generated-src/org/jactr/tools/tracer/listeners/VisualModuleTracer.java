@@ -15,8 +15,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Executor;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.commonreality.identifier.IIdentifier;
 import org.jactr.core.concurrent.ExecutorServices;
 import org.jactr.core.event.IParameterEvent;
@@ -35,14 +33,15 @@ import org.jactr.modules.pm.visual.event.IVisualModuleListener;
 import org.jactr.modules.pm.visual.event.VisualModuleEvent;
 import org.jactr.tools.tracer.transformer.visual.TransformedVisualEvent;
 import org.jactr.tools.tracer.transformer.visual.VisualEventTransformer;
+import org.slf4j.LoggerFactory;
 
 public class VisualModuleTracer extends BaseTraceListener
 {
   /**
    * Logger definition
    */
-  static private final transient Log                         LOGGER = LogFactory
-                                                                        .getLog(VisualModuleTracer.class);
+  static private final transient org.slf4j.Logger            LOGGER = LoggerFactory
+      .getLogger(VisualModuleTracer.class);
 
   private IModelListener                                     _outputListener;
 
@@ -341,39 +340,42 @@ public class VisualModuleTracer extends BaseTraceListener
   synchronized protected void dumpPendingEvents(IModel model)
   {
     Map<IIdentifier, Map<String, Object>> updates = getUpdates(model);
-    /*
-     * make sure the added have all their data
-     */
-
-    // need to make thread safe.
     Collection<IIdentifier> added = getAdded(model);
-    if (LOGGER.isDebugEnabled())
-      LOGGER.debug("Getting full data for " + added.size() + " add events");
 
-    for (IIdentifier add : added)
-      updateAllData(model, add, getUpdates(updates, add, true));
-
-    Collection<TransformedVisualEvent> events = getEvents(model);
-    if (LOGGER.isDebugEnabled())
-      LOGGER.debug("Processing " + events.size() + " visual events");
-
-    for (TransformedVisualEvent event : events)
+    synchronized (updates)
     {
-      TransformedVisualEvent.Type type = event.getType();
-      /*
-       * if it is an add or update, we need to get the collated properties
-       */
-      if (type == TransformedVisualEvent.Type.ADDED
-          || type == TransformedVisualEvent.Type.UPDATED)
-        event.getData().putAll(
-            getUpdates(updates, event.getIdentifier(), false));
-
-      sink(event);
+      synchronized (added)
+      {
+        if (LOGGER.isDebugEnabled())
+          LOGGER.debug("Getting full data for " + added.size() + " add events");
+        for (IIdentifier add : added)
+          updateAllData(model, add, getUpdates(updates, add, true));
+        added.clear();
+      }
+      updates.clear();
     }
 
-    added.clear();
+    Collection<TransformedVisualEvent> events = getEvents(model);
+    synchronized (events)
+    {
+      if (LOGGER.isDebugEnabled())
+        LOGGER.debug("Processing " + events.size() + " visual events");
+      for (TransformedVisualEvent event : events)
+      {
+        TransformedVisualEvent.Type type = event.getType();
+        /*
+         * if it is an add or update, we need to get the collated properties
+         */
+        if (type == TransformedVisualEvent.Type.ADDED
+            || type == TransformedVisualEvent.Type.UPDATED)
+          event.getData()
+              .putAll(getUpdates(updates, event.getIdentifier(), false));
+
+        sink(event);
+      }
+      events.clear();
+    }
+
     getRemoved(model).clear();
-    updates.clear();
-    events.clear();
   }
 }
