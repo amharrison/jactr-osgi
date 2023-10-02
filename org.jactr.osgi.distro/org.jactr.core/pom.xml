@@ -19,7 +19,8 @@
 				<artifactId>maven-dependency-plugin</artifactId>
 				<version>3.1.1</version>
 				<executions>
-					<!-- for source generation we unpack the source, then zip it up as org.commonreality.osg_version/src.zip. 
+					<!-- for source generation we unpack the source, then zip it
+					up as org.commonreality.osg_version/src.zip. 
 						Our manifest points to itself for its source bundle. Who knows if this will 
 						work. -->
 					<execution>
@@ -33,12 +34,14 @@
 							<includeArtifactIds>org.jactr.core</includeArtifactIds>
 							<classifier>sources</classifier>
 							<failOnMissingClassifierArtifact>false</failOnMissingClassifierArtifact>
-							<outputDirectory>${project.build.directory}/../generated-src/</outputDirectory>
+							<outputDirectory>
+								${project.build.directory}/../generated-src/</outputDirectory>
 							<overWrite>true</overWrite>
 						</configuration>
 					</execution>
 					<execution>
-						<!-- We copy out the dependencies for commons-pool2 and antlr3.1.1 
+						<!-- We copy out the dependencies for commons-pool2 and
+						antlr3.1.1 
 							and repackage them in the osgi bundle since they are not provided in eclipse 
 							land. Antlr3.1.1 is used instead of 3.2.0 as it introduces a parsing error. -->
 						<id>copyPoolDep</id>
@@ -58,12 +61,28 @@
 			</plugin>
 		</plugins>
 	</build>
-	
+
 	<dependencies>
 		<dependency>
 			<groupId>org.jactr</groupId>
 			<artifactId>org.jactr.core</artifactId>
 			<version>2.5.0-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.collections</groupId>
+			<artifactId>eclipse-collections-api</artifactId>
+			<version>11.1.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.eclipse.collections</groupId>
+			<artifactId>eclipse-collections</artifactId>
+			<version>11.1.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-collections4</artifactId>
+			<version>4.4</version>
 		</dependency>
 	</dependencies>
 </project>
