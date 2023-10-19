@@ -25,8 +25,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.LoggerFactory;
 
 
 public class ExecutorServices
@@ -34,8 +33,8 @@ public class ExecutorServices
   /**
    * logger definition
    */
-  static private final Log                    LOGGER          = LogFactory
-                                                                  .getLog(ExecutorServices.class);
+  static private final transient org.slf4j.Logger                    LOGGER          = LoggerFactory
+                                                                  .getLogger(ExecutorServices.class);
 
   static final public String                  INLINE          = "Inline";
 
@@ -74,6 +73,11 @@ public class ExecutorServices
     addExecutor(POOL, Executors.newFixedThreadPool(
         (int) Math.ceil(Runtime.getRuntime().availableProcessors() / 2.0),
             new GeneralThreadFactory("jACT-R Pool")));
+  }
+
+  static public boolean isShuttingDown()
+  {
+    return _isShuttingDown;
   }
 
   static public void removeExecutor(String name)

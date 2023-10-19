@@ -9,24 +9,60 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.LoggerFactory;
 
 public class UniqueSlotContainer implements IUniqueSlotContainer
 {
   /**
    * Logger definition
    */
-  static private final transient Log LOGGER      = LogFactory
-                                                     .getLog(UniqueSlotContainer.class);
+  static private final transient org.slf4j.Logger LOGGER      = LoggerFactory
+      .getLogger(UniqueSlotContainer.class);
 
-  private Map<String, ISlot>         _slotMap;
+  private Map<String, ISlot>                      _slotMap;
 
-  protected boolean                  _useMutable = false;
+  protected boolean                               _useMutable = false;
 
   public UniqueSlotContainer()
   {
     this(false);
+  }
+
+  @Override
+  public int hashCode()
+  {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + (_slotMap == null ? 0 : _slotMap.hashCode());
+    result = prime * result + (_useMutable ? 1231 : 1237);
+    return result;
+  }
+
+  /**
+   * this is retained for BasicSymbolicChunk down the inheritance line. This
+   * exposes the default Object.hashCode
+   *
+   * @return
+   */
+  protected int originalHashCode()
+  {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj)
+  {
+    if (this == obj) return true;
+    if (obj == null) return false;
+    if (getClass() != obj.getClass()) return false;
+    UniqueSlotContainer other = (UniqueSlotContainer) obj;
+    if (_slotMap == null)
+    {
+      if (other._slotMap != null) return false;
+    }
+    else if (!_slotMap.equals(other._slotMap)) return false;
+    if (_useMutable != other._useMutable) return false;
+    return true;
   }
 
   public UniqueSlotContainer(boolean useMutableSlots)

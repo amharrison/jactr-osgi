@@ -6,8 +6,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.chunk.IChunk;
 import org.jactr.core.chunk.ISymbolicChunk;
 import org.jactr.core.chunktype.IChunkType;
@@ -27,6 +25,7 @@ import org.jactr.core.slot.ISlotContainer;
 import org.jactr.core.slot.IUniqueSlotContainer;
 import org.jactr.core.slot.IVariableNameSlot;
 import org.jactr.core.utils.collections.FastListFactory;
+import org.slf4j.LoggerFactory;
 
 /*
  * default logging
@@ -41,14 +40,14 @@ public class SlotBasedRequest implements IRequest, ISlotContainer
   /**
    * Logger definition
    */
-  static private final transient Log LOGGER  = LogFactory
-      .getLog(SlotBasedRequest.class);
+  static private final transient org.slf4j.Logger LOGGER  = LoggerFactory
+      .getLogger(SlotBasedRequest.class);
 
-  protected Collection<ISlot>        _slots;
+  protected Collection<ISlot>                     _slots;
 
-  protected Collection<ISlot>        _unresolved;
+  protected Collection<ISlot>                     _unresolved;
 
-  private boolean                    _locked = false;
+  private boolean                                 _locked = false;
 
   @SuppressWarnings("unchecked")
   public SlotBasedRequest()
@@ -359,30 +358,20 @@ public class SlotBasedRequest implements IRequest, ISlotContainer
 
           Object value = bindings.get(variableName);
           slotToResolve.setValue(value);
-
-          // test
-          // test moved down below
-          // if (!slotToResolve.matchesCondition(valueSlot.getValue()))
-          // {
-          // // cleanup. normally this isn't needed unless we're nested in
-          // // logicals
-          // throw new CannotMatchException(new SlotMatchFailure(null,
-          // slotContainer, slotToResolve, valueSlot,
-          // bindings.getSource(variableName)));
-          // }
+          // we will do the actual matchesCondition test below
         }
         else if (slotToResolve.getCondition() == IConditionalSlot.EQUALS)
           /*
            * since the slot was not previously bound, we will do so here.
            */
           if (slotToResolve.matchesCondition(valueSlot.getValue()))
-          {
+        {
           locallyBound = true;
           bindings.bind(variableName, valueSlot.getValue(), valueSlot);
 
           if (LOGGER.isDebugEnabled()) LOGGER.debug(
               String.format("Bound %s %s", variableName, valueSlot.getValue()));
-          }
+        }
           else
           /*
            * it doesn't match, this is likely a slotName =toBeBound, but
@@ -400,7 +389,7 @@ public class SlotBasedRequest implements IRequest, ISlotContainer
          * this will not test ISA correctly.
          */
         if (slotToResolve.getName().equalsIgnoreCase(ISlot.ISA))
-        {
+      {
         /*
          * isa s must have a chunk as the container and a chunk type as the
          * value/
@@ -419,15 +408,24 @@ public class SlotBasedRequest implements IRequest, ISlotContainer
         if (!chunk.isA(ct)) throw new CannotMatchException(
             new ChunkTypeMatchFailure(ct, chunk.getParentChunk()));
 
-        }
-        else if (!slotToResolve.matchesCondition(valueSlot.getValue()))
-        {
+      }
+
+      /**
+       * final check
+       */
+      if (!slotToResolve.matchesCondition(valueSlot.getValue()))
+      {
         if (locallyBound) bindings.unbind(variableName);
 
-        throw new CannotMatchException(
-            new SlotMatchFailure(slotContainer, slotToResolve, valueSlot));
-        }
-
+        if (locallyBound) bindings.unbind(variableName);
+        if (variableName != null)
+          throw new CannotMatchException(
+              new SlotMatchFailure(null, slotContainer, slotToResolve,
+                  valueSlot, bindings.getSource(variableName)));
+        else
+          throw new CannotMatchException(
+              new SlotMatchFailure(slotContainer, slotToResolve, valueSlot));
+      }
     }
 
     return true;
@@ -626,7 +624,7 @@ public class SlotBasedRequest implements IRequest, ISlotContainer
   {
     if (!_locked) return _slots;
 
-    return Collections.unmodifiableCollection(_slots);
+    return new ArrayList<>(_slots);
   }
 
   public void removeSlot(ISlot slot)

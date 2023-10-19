@@ -8,9 +8,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.production.bindings.BindingFactory;
+import org.slf4j.LoggerFactory;
 
 /**
  * storage for variable bindings plus where they originated. If the binding
@@ -27,8 +26,8 @@ public class VariableBindings
   /**
    * Logger definition
    */
-  static private final transient Log  LOGGER    = LogFactory
-                                                    .getLog(VariableBindings.class);
+  static private final transient org.slf4j.Logger LOGGER           = LoggerFactory
+                                                    .getLogger(VariableBindings.class);
 
   /**
    * keyed on name [value, originalSlot, container]
@@ -145,6 +144,7 @@ public class VariableBindings
 
   public Object getSource(String variableName)
   {
+    if (variableName == null) return null;
     Object[] rtn = _bindings.get(variableName.toLowerCase());
     if (rtn != null) return rtn[1];
     return null;

@@ -244,7 +244,7 @@ http://jactr.org/node/142
   <extension
         point="org.jactr.osgi.syntaxproviders">
      <syntaxprovider
-           extension="jactr"
+           extension="jactrx"
            generator="org.jactr.io.antlr3.generator.xml.JACTRCodeGenerator"
            parser="org.jactr.io.antlr3.parser.xml.JACTRModelParser">
            <description>Provides jactr core file format</description>
@@ -263,7 +263,7 @@ http://jactr.org/node/142
            writer="org.jactr.io.antlr3.writer.bin.BinaryModelWriter">
      </readerwriter>
      <readerwriter
-           extension="jactr"
+           extension="jactrx"
            writer="org.jactr.io.antlr3.writer.xml.JACTRModelWriter">
      </readerwriter>
      <readerwriter

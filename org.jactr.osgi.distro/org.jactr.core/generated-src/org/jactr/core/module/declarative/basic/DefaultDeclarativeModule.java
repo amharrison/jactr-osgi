@@ -24,8 +24,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.buffer.IActivationBuffer;
 import org.jactr.core.buffer.event.ActivationBufferEvent;
 import org.jactr.core.buffer.event.IActivationBufferListener;
@@ -66,12 +64,14 @@ import org.jactr.core.module.declarative.search.ISearchSystem;
 import org.jactr.core.module.declarative.search.filter.IChunkFilter;
 import org.jactr.core.module.declarative.search.filter.ILoggedChunkFilter;
 import org.jactr.core.module.declarative.search.local.DefaultSearchSystem;
+import org.jactr.core.module.declarative.search.local.ISearchDelegate;
 import org.jactr.core.production.request.ChunkTypeRequest;
 import org.jactr.core.utils.StringUtilities;
 import org.jactr.core.utils.collections.SkipListSetFactory;
 import org.jactr.core.utils.parameter.ClassNameParameterHandler;
 import org.jactr.core.utils.parameter.IParameterized;
 import org.jactr.core.utils.parameter.ParameterHandler;
+import org.slf4j.LoggerFactory;
 
 /**
  * default declarative module that incorporates many useful features. This
@@ -103,8 +103,8 @@ public class DefaultDeclarativeModule extends AbstractDeclarativeModule
   /**
    * logger definition
    */
-  static final Log                    LOGGER                               = LogFactory
-      .getLog(DefaultDeclarativeModule.class);
+  static final org.slf4j.Logger       LOGGER                               = LoggerFactory
+      .getLogger(DefaultDeclarativeModule.class);
 
   static public final String          CHUNK_FACTORY_PARAM                  = "ChunkFactoryClass";
 
@@ -125,6 +125,10 @@ public class DefaultDeclarativeModule extends AbstractDeclarativeModule
   static public final String          CHUNK_TYPE_NAMER_PARAM               = "ChunkTypeNamerClass";
 
   static public final String          CHUNK_TYPE_CONFIGURATOR_PARAM        = "ChunkTypeConfiguratorClass";
+
+  static public final String          EXACT_SEARCH_DELEGATE_PARAM          = "ExactSearchDelegateClass";
+
+  static public final String          PARTIAL_SEARCH_DELEGATE_PARAM        = "PartialSearchDelegateClass";
 
   protected ReentrantReadWriteLock    _chunkTypeLock;
 
@@ -493,11 +497,14 @@ public class DefaultDeclarativeModule extends AbstractDeclarativeModule
     if (LOGGER.isDebugEnabled()) LOGGER.debug("find exact matches (" + pattern
         + ") evaluating " + candidates.size() + " candidates");
 
-    if (Logger.hasLoggers(getModel())) logMessage
-        .prepend(String.format("Evaluating exact matches : %s \n", candidates));
-
     if (Logger.hasLoggers(getModel()))
+    {
+      logMessage.prepend(
+          String.format("Evaluating exact matches : %s \n", candidates));
+      logMessage.prepend("Searching for " + pattern + "\n");
+
       Logger.log(getModel(), Logger.Stream.DECLARATIVE, logMessage.toString());
+    }
 
     if (recycle) MessageBuilderFactory.recycle(logMessage);
 
@@ -660,6 +667,10 @@ public class DefaultDeclarativeModule extends AbstractDeclarativeModule
       return getChunkTypeNamer().getClass().getName();
     else if (CHUNK_TYPE_CONFIGURATOR_PARAM.equalsIgnoreCase(key))
       return getChunkTypeConfigurator().getClass().getName();
+    else if (EXACT_SEARCH_DELEGATE_PARAM.equalsIgnoreCase(key))
+      return getSearchSystem().getExactSearchDelegate().getClass().getName();
+    else if (PARTIAL_SEARCH_DELEGATE_PARAM.equalsIgnoreCase(key))
+      return getSearchSystem().getPartialSearchDelegate().getClass().getName();
     return null;
   }
 
@@ -682,6 +693,8 @@ public class DefaultDeclarativeModule extends AbstractDeclarativeModule
     rtn.add(SUBSYMBOLIC_CHUNK_TYPE_FACTORY_PARAM);
     rtn.add(CHUNK_TYPE_NAMER_PARAM);
     rtn.add(CHUNK_TYPE_CONFIGURATOR_PARAM);
+    rtn.add(EXACT_SEARCH_DELEGATE_PARAM);
+    rtn.add(PARTIAL_SEARCH_DELEGATE_PARAM);
 
     return rtn;
   }
@@ -803,7 +816,20 @@ public class DefaultDeclarativeModule extends AbstractDeclarativeModule
       }
       setChunkTypeConfigurator(factory);
     }
-
+    else if (EXACT_SEARCH_DELEGATE_PARAM.equalsIgnoreCase(key))
+    {
+      ISearchDelegate delegate = (ISearchDelegate) instantiate(value);
+      if (delegate == null) if (LOGGER.isWarnEnabled())
+        LOGGER.warn(String.format("Could not instantiate %s", value));
+      getSearchSystem().setExactSearchDelegate(delegate);
+    }
+    else if (PARTIAL_SEARCH_DELEGATE_PARAM.equalsIgnoreCase(key))
+    {
+      ISearchDelegate delegate = (ISearchDelegate) instantiate(value);
+      if (delegate == null) if (LOGGER.isWarnEnabled())
+        LOGGER.warn(String.format("Could not instantiate %s", value));
+      getSearchSystem().setPartialSearchDelegate(delegate);
+    }
     else if (LOGGER.isWarnEnabled()) LOGGER.warn(
         String.format("%s doesn't recognize %s. Available parameters : %s",
             getClass().getSimpleName(), key, getSetableParameters()));

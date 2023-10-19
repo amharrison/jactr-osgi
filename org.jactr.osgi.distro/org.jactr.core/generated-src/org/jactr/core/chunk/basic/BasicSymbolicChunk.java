@@ -12,11 +12,8 @@
  */
 package org.jactr.core.chunk.basic;
 
-
 import java.util.concurrent.locks.Lock;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.chunk.IChunk;
 import org.jactr.core.chunk.ISymbolicChunk;
 import org.jactr.core.chunk.IllegalChunkStateException;
@@ -27,6 +24,7 @@ import org.jactr.core.slot.IMutableSlot;
 import org.jactr.core.slot.ISlot;
 import org.jactr.core.slot.NotifyingSlotContainer;
 import org.jactr.core.utils.IAdaptable;
+import org.slf4j.LoggerFactory;
 
 /**
  * default symbolic chunk implementation
@@ -34,24 +32,23 @@ import org.jactr.core.utils.IAdaptable;
  * @author harrison
  * @created February 5, 2003
  */
-public class BasicSymbolicChunk extends NotifyingSlotContainer implements
-    ISymbolicChunk, IAdaptable
+public class BasicSymbolicChunk extends NotifyingSlotContainer
+    implements ISymbolicChunk, IAdaptable
 {
 
-  private static transient Log     LOGGER      = LogFactory
-                                                   .getLog(BasicSymbolicChunk.class
-                                                       .getName());
+  private static transient org.slf4j.Logger LOGGER      = LoggerFactory
+      .getLogger(BasicSymbolicChunk.class.getName());
 
-  protected IChunkType             _chunkType;
-  
-  protected String                 _chunkName;
+  protected IChunkType                      _chunkType;
 
-  protected IChunk             _parentChunk;
+  protected String                          _chunkName;
 
-  private ISlot                _chunkTypeSlot;                 // for
-                                                                // efficiency
+  protected IChunk                          _parentChunk;
 
-  private static int               TOTAL_COUNT = 0;
+  private ISlot                             _chunkTypeSlot;            // for
+                                                                       // efficiency
+
+  private static int                        TOTAL_COUNT = 0;
 
   public BasicSymbolicChunk()
   {
@@ -65,6 +62,15 @@ public class BasicSymbolicChunk extends NotifyingSlotContainer implements
     setChunkType(type);
   }
 
+  /**
+   * the unique slot container needs an overriden, content specific hashCode,
+   * but symbolicChunk requires (default) identity hash.
+   */
+  @Override
+  public int hashCode()
+  {
+    return originalHashCode();
+  }
 
   protected Lock readLock()
   {
@@ -83,8 +89,6 @@ public class BasicSymbolicChunk extends NotifyingSlotContainer implements
   {
     return false;
   }
-
-
 
   /**
    * return the IChunk wrapper
@@ -125,9 +129,8 @@ public class BasicSymbolicChunk extends NotifyingSlotContainer implements
    */
   public void setName(String name)
   {
-    if (_parentChunk.isEncoded())
-      throw new IllegalChunkStateException(
-          "Cannot change chunks name once encoded");
+    if (_parentChunk.isEncoded()) throw new IllegalChunkStateException(
+        "Cannot change chunks name once encoded");
 
     Lock l = writeLock();
     try
@@ -159,9 +162,8 @@ public class BasicSymbolicChunk extends NotifyingSlotContainer implements
     if (LOGGER.isDebugEnabled())
       LOGGER.debug("Setting chunk type " + ct.getSymbolicChunkType().getName());
 
-    if (_chunkType != null)
-      throw new IllegalChunkStateException(
-          "Cannot overwrite parent IChunkType in chunk " + getName());
+    if (_chunkType != null) throw new IllegalChunkStateException(
+        "Cannot overwrite parent IChunkType in chunk " + getName());
 
     Lock l = writeLock();
     try
@@ -177,8 +179,6 @@ public class BasicSymbolicChunk extends NotifyingSlotContainer implements
       l.unlock();
     }
   }
-
-
 
   /**
    * add a slot by copying it first. Not locked since this is only called from
@@ -253,16 +253,16 @@ public class BasicSymbolicChunk extends NotifyingSlotContainer implements
   @Override
   public ISlot getSlot(String slotName)
   {
-	if(slotName.equalsIgnoreCase("isa")) {
-		if(_chunkTypeSlot == null)
-			_chunkTypeSlot = new BasicSlot("isa",_chunkType);
-		return _chunkTypeSlot;
-	}
+    if (slotName.equalsIgnoreCase("isa"))
+    {
+      if (_chunkTypeSlot == null)
+        _chunkTypeSlot = new BasicSlot("isa", _chunkType);
+      return _chunkTypeSlot;
+    }
     ISlot s = super.getSlot(slotName);
-    if (s == null)
-      throw new IllegalChunkStateException(getName() + " of type "
-          + getChunkType() + " does not contain a slot named " + slotName
-          + " possible " + getSlots());
+    if (s == null) throw new IllegalChunkStateException(getName() + " of type "
+        + getChunkType() + " does not contain a slot named " + slotName
+        + " possible " + getSlots());
     return s;
   }
 
@@ -275,7 +275,7 @@ public class BasicSymbolicChunk extends NotifyingSlotContainer implements
   public Object getAdapter(Class adapterClass)
   {
     if (adapterClass.isAssignableFrom(getClass())) return this;
-    
+
     return null;
   }
 }

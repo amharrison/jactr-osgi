@@ -15,8 +15,6 @@ package org.jactr.core.module.retrieval.buffer;
 
 import java.util.Collection;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.buffer.IllegalActivationBufferStateException;
 import org.jactr.core.buffer.delegate.DefaultDelegatedRequestableBuffer6;
 import org.jactr.core.chunk.IChunk;
@@ -27,6 +25,7 @@ import org.jactr.core.module.procedural.five.learning.ICompilableContext;
 import org.jactr.core.module.procedural.six.learning.DefaultCompilableContext;
 import org.jactr.core.module.retrieval.IRetrievalModule;
 import org.jactr.core.utils.StringUtilities;
+import org.slf4j.LoggerFactory;
 
 /**
  * default retrieval buffer
@@ -39,10 +38,11 @@ public class DefaultRetrievalBuffer6 extends DefaultDelegatedRequestableBuffer6
   /**
    * logger definition
    */
-  static private final Log           LOGGER = LogFactory
-                                                .getLog(DefaultRetrievalBuffer6.class);
+  static private final transient org.slf4j.Logger           LOGGER = LoggerFactory
+                                                .getLogger(DefaultRetrievalBuffer6.class);
 
-  ICompilableContext _compilableContext = new DefaultCompilableContext(false, false, false, true);
+  ICompilableContext                              _compilableContext = new DefaultCompilableContext(
+      false, false, false, true, false, false);
 
   
   // protected boolean _ignoreStatus = true;

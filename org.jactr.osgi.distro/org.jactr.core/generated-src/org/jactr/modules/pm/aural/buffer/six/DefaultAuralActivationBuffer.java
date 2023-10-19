@@ -13,19 +13,21 @@
  */
 package org.jactr.modules.pm.aural.buffer.six;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+ 
 import org.jactr.core.buffer.delegate.AddChunkRequestDelegate;
 import org.jactr.core.chunk.IChunk;
 import org.jactr.core.chunktype.IChunkType;
 import org.jactr.core.logging.Logger;
 import org.jactr.core.model.IModel;
+import org.jactr.core.module.procedural.five.learning.ICompilableContext;
+import org.jactr.core.module.procedural.six.learning.DefaultCompilableContext;
 import org.jactr.modules.pm.aural.IAuralModule;
 import org.jactr.modules.pm.aural.buffer.IAuralActivationBuffer;
 import org.jactr.modules.pm.aural.buffer.IAuralLocationBuffer;
 import org.jactr.modules.pm.aural.buffer.processor.AttendToRequestDelegate;
 import org.jactr.modules.pm.aural.buffer.processor.ClearRequestDelegate;
 import org.jactr.modules.pm.common.buffer.AbstractPMActivationBuffer6;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author developer
@@ -36,8 +38,8 @@ public class DefaultAuralActivationBuffer extends AbstractPMActivationBuffer6
   /**
    * logger definition
    */
-  static private final Log LOGGER = LogFactory
-                                      .getLog(DefaultAuralActivationBuffer.class);
+  static private final org.slf4j.Logger LOGGER = LoggerFactory
+                                      .getLogger(DefaultAuralActivationBuffer.class);
 
   private IAuralLocationBuffer _locationBuffer;
 
@@ -113,6 +115,12 @@ public class DefaultAuralActivationBuffer extends AbstractPMActivationBuffer6
   public IAuralLocationBuffer getAuralLocationBuffer()
   {
     return _locationBuffer;
+  }
+
+  @Override
+  public ICompilableContext getCompilableContext()
+  {
+    return new DefaultCompilableContext(false, false, true, false, false, true);
   }
 
 }

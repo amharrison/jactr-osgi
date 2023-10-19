@@ -20,16 +20,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.model.IModel;
 import org.jactr.core.module.procedural.four.learning.ICostEquation;
 import org.jactr.core.module.procedural.four.learning.IProbabilityEquation;
 import org.jactr.core.production.IProduction;
 import org.jactr.core.production.ISubsymbolicProduction;
 import org.jactr.core.production.event.ProductionEvent;
+import org.jactr.core.runtime.ACTRRuntime;
 import org.jactr.core.utils.DefaultAdaptable;
 import org.jactr.core.utils.parameter.ParameterHandler;
+import org.slf4j.LoggerFactory;
 
 public class BasicSubsymbolicProduction extends DefaultAdaptable implements
     ISubsymbolicProduction
@@ -39,8 +39,8 @@ public class BasicSubsymbolicProduction extends DefaultAdaptable implements
    * Logger definition
    */
 
-  protected static final transient Log LOGGER          = LogFactory
-                                                           .getLog(BasicSubsymbolicProduction.class);
+  protected static final transient org.slf4j.Logger LOGGER          = LoggerFactory
+                                                           .getLogger(BasicSubsymbolicProduction.class);
 
   protected double                     _creationTime;
 
@@ -92,6 +92,11 @@ public class BasicSubsymbolicProduction extends DefaultAdaptable implements
   {
     setCreationTime(0.0);
     _unknownParameters = new HashMap<String, String>();
+  }
+
+  protected IProduction getProduction()
+  {
+    return _parentProduction;
   }
 
   public IProbabilityEquation getProbabilityEquation()
@@ -220,7 +225,8 @@ public class BasicSubsymbolicProduction extends DefaultAdaptable implements
 
   public void encode()
   {
-    // noop
+    setCreationTime(ACTRRuntime.getRuntime()
+        .getClock(getProduction().getModel()).getTime());
   }
 
 }

@@ -6,8 +6,11 @@ package org.jactr.core.production.request;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+ 
+import org.slf4j.LoggerFactory;
+import org.jactr.core.buffer.IActivationBuffer;
+import org.jactr.core.buffer.misc.StatusBufferUniqueSlotContainer;
+import org.jactr.core.buffer.six.IStatusBuffer;
 import org.jactr.core.chunk.IChunk;
 import org.jactr.core.chunk.ISymbolicChunk;
 import org.jactr.core.chunktype.IChunkType;
@@ -28,8 +31,8 @@ public class ChunkTypeRequest extends SlotBasedRequest
   /**
    * Logger definition
    */
-  static private final transient Log LOGGER    = LogFactory
-      .getLog(ChunkTypeRequest.class);
+  static private final transient org.slf4j.Logger LOGGER    = LoggerFactory
+      .getLogger(ChunkTypeRequest.class);
 
   private IChunkType                 _chunkType;
 
@@ -75,13 +78,14 @@ public class ChunkTypeRequest extends SlotBasedRequest
    * same idea as {@link IRequest#bind(IModel, VariableBindings, boolean)}
    * 
    * @param testChunk
-   * @param model
+   * @param buffer
    * @param bindings
    * @return
    * @throws CannotMatchException
    */
-  public int bind(IChunk testChunk, IModel model, VariableBindings bindings,
-      boolean iterativeCall) throws CannotMatchException
+  public int bind(IChunk testChunk, IActivationBuffer buffer,
+      VariableBindings bindings, boolean iterativeCall)
+      throws CannotMatchException
   {
     IChunkType chunkType = getChunkType();
 
@@ -90,8 +94,20 @@ public class ChunkTypeRequest extends SlotBasedRequest
           new ChunkTypeMatchFailure(chunkType, testChunk));
 
     ISymbolicChunk sChunk = testChunk.getSymbolicChunk();
+    /*
+     * this wrapper allows us to check :status slots transparently
+     */
+    if (buffer instanceof IStatusBuffer)
+    {
+      StatusBufferUniqueSlotContainer slotWrapper = new StatusBufferUniqueSlotContainer(
+          (IStatusBuffer) buffer, sChunk);
 
-    return super.bind(model, sChunk.getName(), sChunk, bindings, iterativeCall);
+      return super.bind(buffer.getModel(), sChunk.getName(), slotWrapper,
+          bindings, iterativeCall);
+    }
+    else
+      return super.bind(buffer.getModel(), sChunk.getName(), sChunk, bindings,
+          iterativeCall);
   }
 
   @Override

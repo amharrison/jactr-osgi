@@ -22,8 +22,6 @@ import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.commonreality.agents.IAgent;
 import org.commonreality.identifier.IIdentifier;
 import org.commonreality.object.IAfferentObject;
@@ -35,9 +33,9 @@ import org.commonreality.object.manager.event.ObjectEvent;
 import org.commonreality.time.IClock;
 import org.eclipse.collections.impl.factory.Maps;
 import org.eclipse.collections.impl.factory.Sets;
-import org.jactr.core.utils.collections.CachedCollection;
 import org.jactr.core.utils.collections.FastListFactory;
 import org.jactr.core.utils.collections.FastMapFactory;
+import org.slf4j.LoggerFactory;
 
 /**
  * default afferent listener that instead of routing events directly, queues
@@ -48,12 +46,12 @@ import org.jactr.core.utils.collections.FastMapFactory;
  * 
  * @author developer
  */
-public class DefaultAfferentObjectListener implements IAfferentListener,
-    Runnable
+public class DefaultAfferentObjectListener
+    implements IAfferentListener, Runnable
 {
 
-  static private transient Log                LOGGER          = LogFactory
-                                                                  .getLog(DefaultAfferentObjectListener.class);
+  static private transient org.slf4j.Logger   LOGGER          = LoggerFactory
+      .getLogger(DefaultAfferentObjectListener.class);
 
   private Executor                            _executor;
 
@@ -73,8 +71,7 @@ public class DefaultAfferentObjectListener implements IAfferentListener,
 
   public DefaultAfferentObjectListener(IAgent agent, Executor executor)
   {
-    _listeners = new CachedCollection<IAfferentObjectListener>(
-        new ArrayList<IAfferentObjectListener>());
+    _listeners = new ArrayList<IAfferentObjectListener>();
     _agent = agent;
     _executor = executor;
     _addedObjects = Sets.mutable.empty();
@@ -173,8 +170,7 @@ public class DefaultAfferentObjectListener implements IAfferentListener,
      * null.
      */
     IClock clock = _agent.getClock();
-    if (clock != null)
-      _lastChangeTime = clock.getTime();
+    if (clock != null) _lastChangeTime = clock.getTime();
   }
 
   /**
@@ -220,17 +216,16 @@ public class DefaultAfferentObjectListener implements IAfferentListener,
   protected void objectAdded(IAfferentObject object)
   {
     for (IAfferentObjectListener encoder : _listeners)
-      if (encoder.isInterestedIn(object))
-        try
-        {
-          encoder.afferentObjectAdded(object);
-        }
-        catch (Exception e)
-        {
-          if (LOGGER.isWarnEnabled())
-            LOGGER.warn(encoder + " failed to encode afferent object "
-                + object.getIdentifier() + " ", e);
-        }
+      if (encoder.isInterestedIn(object)) try
+      {
+        encoder.afferentObjectAdded(object);
+      }
+      catch (Exception e)
+      {
+        if (LOGGER.isWarnEnabled())
+          LOGGER.warn(encoder + " failed to encode afferent object "
+              + object.getIdentifier() + " ", e);
+      }
   }
 
   /**
@@ -264,17 +259,15 @@ public class DefaultAfferentObjectListener implements IAfferentListener,
   protected void objectRemoved(IAfferentObject object)
   {
     for (IAfferentObjectListener encoder : _listeners)
-      if (encoder.isInterestedIn(object))
-        try
-        {
-          encoder.afferentObjectRemoved(object);
-        }
-        catch (Exception e)
-        {
-          if (LOGGER.isWarnEnabled())
-            LOGGER.warn(encoder + " failed to remove object "
-                + object.getIdentifier() + " ", e);
-        }
+      if (encoder.isInterestedIn(object)) try
+      {
+        encoder.afferentObjectRemoved(object);
+      }
+      catch (Exception e)
+      {
+        if (LOGGER.isWarnEnabled()) LOGGER.warn(encoder
+            + " failed to remove object " + object.getIdentifier() + " ", e);
+      }
   }
 
   /**
@@ -314,17 +307,15 @@ public class DefaultAfferentObjectListener implements IAfferentListener,
   protected void objectUpdated(IAfferentObject object, IObjectDelta delta)
   {
     for (IAfferentObjectListener encoder : _listeners)
-      if (encoder.isInterestedIn(object))
-        try
-        {
-          encoder.afferentObjectUpdated(object, delta);
-        }
-        catch (Exception e)
-        {
-          if (LOGGER.isWarnEnabled())
-            LOGGER.warn(encoder + " failed to propogate update of "
-                + object.getIdentifier(), e);
-        }
+      if (encoder.isInterestedIn(object)) try
+      {
+        encoder.afferentObjectUpdated(object, delta);
+      }
+      catch (Exception e)
+      {
+        if (LOGGER.isWarnEnabled()) LOGGER.warn(encoder
+            + " failed to propogate update of " + object.getIdentifier(), e);
+      }
   }
 
 }

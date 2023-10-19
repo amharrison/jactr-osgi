@@ -1,10 +1,5 @@
 package org.jactr.modules.pm.aural.memory.impl.encoder;
 
-/*
- * default logging
- */
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.commonreality.modalities.aural.DefaultAuralPropertyHandler;
 import org.commonreality.modalities.aural.IAuralPropertyHandler;
 import org.commonreality.object.IAfferentObject;
@@ -21,13 +16,19 @@ import org.jactr.modules.pm.aural.memory.impl.AuralEventIndexManager;
 import org.jactr.modules.pm.common.memory.IPerceptualEncoder;
 import org.jactr.modules.pm.common.memory.IPerceptualMemory;
 
+/*
+ * default logging
+ */
+ 
+import org.slf4j.LoggerFactory;
+
 public abstract class AbstractAuralEncoder implements IPerceptualEncoder
 {
   /**
    * Logger definition
    */
-  static private final transient Log LOGGER = LogFactory
-                                                .getLog(AbstractAuralEncoder.class);
+  static private final transient org.slf4j.Logger LOGGER = LoggerFactory
+                                                .getLogger(AbstractAuralEncoder.class);
 
   static public IChunk getAudioEvent(IAfferentObject afferent,
       IAuralMemory memory)
@@ -49,7 +50,7 @@ public abstract class AbstractAuralEncoder implements IPerceptualEncoder
 
   static private final IAuralPropertyHandler _propertyHandler = new DefaultAuralPropertyHandler();
 
-  private final String                       _chunkTypeName;
+  protected final String                     _chunkTypeName;
 
   private IChunkType                         _chunkType;
 

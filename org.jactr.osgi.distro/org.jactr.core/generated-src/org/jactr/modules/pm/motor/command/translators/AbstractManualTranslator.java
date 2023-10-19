@@ -6,16 +6,17 @@ package org.jactr.modules.pm.motor.command.translators;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.commonreality.modalities.motor.MotorUtilities;
 import org.commonreality.object.IEfferentObject;
 import org.jactr.core.chunk.IChunk;
+import org.jactr.core.chunktype.IChunkType;
 import org.jactr.core.model.IModel;
 import org.jactr.core.production.request.ChunkTypeRequest;
 import org.jactr.core.slot.DefaultMutableSlot;
 import org.jactr.core.slot.IMutableSlot;
 import org.jactr.core.slot.ISlot;
 import org.jactr.modules.pm.motor.IMotorModule;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractManualTranslator extends AbstractTranslator
 {
@@ -31,8 +32,8 @@ public abstract class AbstractManualTranslator extends AbstractTranslator
   /**
    * Logger definition
    */
-  static final transient Log                LOGGER                 = LogFactory
-                                                                       .getLog(AbstractManualTranslator.class);
+  static final transient org.slf4j.Logger LOGGER                 = LoggerFactory
+                                                                       .getLogger(AbstractManualTranslator.class);
 
   private double                            _motorBurstTime        = Double.NaN;
 
@@ -40,11 +41,32 @@ public abstract class AbstractManualTranslator extends AbstractTranslator
 
   private double                            _peckFittsCoeff        = Double.NaN;
   
-  private Collection<ISlot> _recycledSlotContainer = new ArrayList<ISlot>(4);
+  protected Collection<ISlot>             _recycledSlotContainer = new ArrayList<ISlot>(
+      4);
 
   public AbstractManualTranslator()
   {
     
+  }
+
+  protected boolean handles(String commandChunkType, ChunkTypeRequest request)
+  {
+    try
+    {
+      IChunkType actual = request.getChunkType();
+      IChunkType handToHome = actual.getModel().getDeclarativeModule()
+          .getChunkType(commandChunkType).get();
+
+      return actual.equals(handToHome);
+    }
+    catch (Exception e)
+    {
+      /**
+       * Error :
+       */
+      LOGGER.error("Failed to get " + commandChunkType + " chunk type ", e);
+      return false;
+    }
   }
 
   /**
@@ -73,26 +95,19 @@ public abstract class AbstractManualTranslator extends AbstractTranslator
     ISlot muscleSlot = null;
     
     _recycledSlotContainer.clear();
+    request.getChunkType().getSymbolicChunkType()
+        .getSlots(_recycledSlotContainer); // grab the defaults
     _recycledSlotContainer = request.getSlots(_recycledSlotContainer);
 
     for (ISlot slot : _recycledSlotContainer)
     {
       String slotName = slot.getName();
       if (slotName.equalsIgnoreCase("hand"))
-      {
         hand = (IChunk) slot.getValue();
-        request.removeSlot(slot);
-      }
       else if (slotName.equalsIgnoreCase("finger"))
-      {
         finger = (IChunk) slot.getValue();
-        request.removeSlot(slot);
-      }
       else if (slotName.equalsIgnoreCase("device"))
-      {
         device = (IChunk) slot.getValue();
-        request.removeSlot(slot);
-      }
       else if (slotName.equalsIgnoreCase("muscle")) muscleSlot = slot;
     }
 
@@ -199,5 +214,34 @@ public abstract class AbstractManualTranslator extends AbstractTranslator
       if (Double.isNaN(rate[i])) rate[i] = 0;
     }
     return rate;
+  }
+
+  protected double computeDistance(double[] origin, double[] target)
+  {
+    double rtn = 0;
+    for (int i = 0; i < origin.length; i++)
+      rtn += Math.abs(origin[i] - target[i]) * Math.abs(origin[i] - target[i]);
+
+    return Math.sqrt(rtn);
+  }
+
+  protected boolean rightHandIsOnHome(IModel model)
+  {
+    IEfferentObject rightHand = getMuscle("right", model);
+    double[] position = MotorUtilities.getPosition(rightHand);
+    double tolerance = 0.1;
+    // 7,4 is 'J'
+    return tolerance >= Math.abs(position[0] - 7)
+        && tolerance >= Math.abs(position[1] - 4);
+  }
+
+  protected boolean rightHandIsOnMouse(IModel model)
+  {
+    IEfferentObject rightHand = getMuscle("right", model);
+    double[] position = MotorUtilities.getPosition(rightHand);
+    double tolerance = 0.1;
+    // 28,2 is left mouse button
+    return tolerance >= Math.abs(position[0] - 28)
+        && tolerance >= Math.abs(position[1] - 2);
   }
 }

@@ -7,8 +7,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.buffer.IActivationBuffer;
 import org.jactr.core.chunk.IChunk;
 import org.jactr.core.model.IModel;
@@ -22,6 +20,7 @@ import org.jactr.core.slot.IMutableSlot;
 import org.jactr.core.slot.ISlot;
 import org.jactr.core.slot.ISlotContainer;
 import org.jactr.core.utils.StringUtilities;
+import org.slf4j.LoggerFactory;
 
 /**
  * a zero-time buffer content set operator
@@ -34,8 +33,8 @@ public class SetAction extends DefaultAction implements ISlotContainer,
   /**
    * Logger definition
    */
-  static private final transient Log     LOGGER = LogFactory
-                                                    .getLog(SetAction.class);
+  static private final transient org.slf4j.Logger LOGGER = LoggerFactory
+                                                    .getLogger(SetAction.class);
 
   private String                         _bufferName;
 
@@ -225,4 +224,49 @@ public class SetAction extends DefaultAction implements ISlotContainer,
     }
 
   }
+
+  @Override
+  public int hashCode()
+  {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result
+        + (_boundChunk == null ? 0 : _boundChunk.hashCode());
+    result = prime * result
+        + (_bufferName == null ? 0 : _bufferName.hashCode());
+    result = prime * result + (_referant == null ? 0 : _referant.hashCode());
+    result = prime * result + (_slots == null ? 0 : _slots.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj)
+  {
+    if (this == obj) return true;
+    if (obj == null) return false;
+    if (getClass() != obj.getClass()) return false;
+    SetAction other = (SetAction) obj;
+    if (_boundChunk == null)
+    {
+      if (other._boundChunk != null) return false;
+    }
+    else if (!_boundChunk.equals(other._boundChunk)) return false;
+    if (_bufferName == null)
+    {
+      if (other._bufferName != null) return false;
+    }
+    else if (!_bufferName.equals(other._bufferName)) return false;
+    if (_referant == null)
+    {
+      if (other._referant != null) return false;
+    }
+    else if (!_referant.equals(other._referant)) return false;
+    if (_slots == null)
+    {
+      if (other._slots != null) return false;
+    }
+    else if (!_slots.equals(other._slots)) return false;
+    return true;
+  }
+
 }

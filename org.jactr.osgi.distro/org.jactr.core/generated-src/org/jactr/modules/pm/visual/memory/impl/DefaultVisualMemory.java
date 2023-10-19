@@ -8,8 +8,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.commonreality.agents.IAgent;
 import org.jactr.core.buffer.six.IStatusBuffer;
 import org.jactr.core.chunk.IChunk;
@@ -17,6 +15,7 @@ import org.jactr.core.chunk.ISymbolicChunk;
 import org.jactr.core.chunk.IllegalChunkStateException;
 import org.jactr.core.logging.IMessageBuilder;
 import org.jactr.core.logging.Logger;
+import org.jactr.core.module.declarative.IDeclarativeModule;
 import org.jactr.core.module.random.IRandomModule;
 import org.jactr.core.module.random.six.DefaultRandomModule;
 import org.jactr.core.production.request.ChunkTypeRequest;
@@ -27,6 +26,7 @@ import org.jactr.core.utils.parameter.NumericParameterHandler;
 import org.jactr.core.utils.parameter.ParameterHandler;
 import org.jactr.modules.pm.common.memory.IPerceptualEncoder;
 import org.jactr.modules.pm.common.memory.PerceptualSearchResult;
+import org.jactr.modules.pm.common.memory.filter.HighestLowestIndexFilter;
 import org.jactr.modules.pm.common.memory.filter.IIndexFilter;
 import org.jactr.modules.pm.common.memory.filter.NumericIndexFilter;
 import org.jactr.modules.pm.common.memory.impl.AbstractPerceptualMemory;
@@ -34,10 +34,12 @@ import org.jactr.modules.pm.common.memory.map.IFINSTFeatureMap;
 import org.jactr.modules.pm.common.memory.map.IFeatureMap;
 import org.jactr.modules.pm.visual.IVisualModule;
 import org.jactr.modules.pm.visual.memory.IVisualMemory;
+import org.jactr.modules.pm.visual.memory.impl.encoder.ButtonEncoder;
 import org.jactr.modules.pm.visual.memory.impl.encoder.CursorEncoder;
 import org.jactr.modules.pm.visual.memory.impl.encoder.EmptySpaceEncoder;
-import org.jactr.modules.pm.visual.memory.impl.encoder.GUIEncoder;
+import org.jactr.modules.pm.visual.memory.impl.encoder.LabelEncoder;
 import org.jactr.modules.pm.visual.memory.impl.encoder.LineEncoder;
+import org.jactr.modules.pm.visual.memory.impl.encoder.MenuEncoder;
 import org.jactr.modules.pm.visual.memory.impl.encoder.PhraseEncoder;
 import org.jactr.modules.pm.visual.memory.impl.encoder.TextEncoder;
 import org.jactr.modules.pm.visual.memory.impl.filter.AttendedVisualLocationFilter;
@@ -55,6 +57,7 @@ import org.jactr.modules.pm.visual.memory.impl.map.PitchFeatureMap;
 import org.jactr.modules.pm.visual.memory.impl.map.SizeFeatureMap;
 import org.jactr.modules.pm.visual.memory.impl.map.ValueFeatureMap;
 import org.jactr.modules.pm.visual.memory.impl.map.VisibilityFeatureMap;
+import org.slf4j.LoggerFactory;
 
 public class DefaultVisualMemory extends AbstractPerceptualMemory implements
     IVisualMemory
@@ -63,8 +66,8 @@ public class DefaultVisualMemory extends AbstractPerceptualMemory implements
   /**
    * Logger definition
    */
-  static private final transient Log LOGGER                        = LogFactory
-                                                                       .getLog(DefaultVisualMemory.class);
+  static private final transient org.slf4j.Logger LOGGER                        = LoggerFactory
+                                                                       .getLogger(DefaultVisualMemory.class);
 
   static public final String         VISUAL_PESISTENCE_DELAY_PARAM = "VisualPersistenceDelay";
 
@@ -102,7 +105,9 @@ public class DefaultVisualMemory extends AbstractPerceptualMemory implements
     addEncoder(new TextEncoder());
     addEncoder(new PhraseEncoder());
     addEncoder(new LineEncoder());
-    addEncoder(new GUIEncoder());
+    addEncoder(new ButtonEncoder());
+    addEncoder(new MenuEncoder());
+    addEncoder(new LabelEncoder());
     addEncoder(new EmptySpaceEncoder());
     addEncoder(new CursorEncoder());
 
@@ -213,6 +218,10 @@ public class DefaultVisualMemory extends AbstractPerceptualMemory implements
 
     try
     {
+      IDeclarativeModule decMod = getModule().getModel().getDeclarativeModule();
+      addFilter(new HighestLowestIndexFilter(decMod.getChunk("highest").get(),
+          decMod.getChunk("lowest").get()));
+
       _notAvailableChunk = getModule().getModel().getDeclarativeModule()
           .getChunk(IStatusBuffer.ERROR_NO_LONGER_AVAILABLE_CHUNK).get();
     }
@@ -290,8 +299,6 @@ public class DefaultVisualMemory extends AbstractPerceptualMemory implements
        */
       ISymbolicChunk sc = indexChunk.getSymbolicChunk();
       for (ISlot slot : expandedRequest.getSlots())
-        if (!slot.getName().equalsIgnoreCase(IVisualModule.SCREEN_X_SLOT)
-            && !slot.getName().equalsIgnoreCase(IVisualModule.SCREEN_Y_SLOT))
           try
           {
             value = slot.getValue();

@@ -20,8 +20,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.Executor;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.commonreality.identifier.IIdentifier;
 import org.jactr.core.buffer.IActivationBuffer;
 import org.jactr.core.chunk.IChunk;
@@ -49,6 +47,7 @@ import org.jactr.modules.pm.common.memory.IActivePerceptListener;
 import org.jactr.modules.pm.common.memory.IPerceptualEncoder;
 import org.jactr.modules.pm.common.memory.IPerceptualMemory;
 import org.jactr.modules.pm.common.memory.map.IFINSTFeatureMap;
+import org.slf4j.LoggerFactory;
 
 /**
  * abstract implementation of the aural module that takes care of most of the
@@ -62,7 +61,7 @@ public abstract class AbstractAuralModule extends AbstractPerceptualModule
     implements IAuralModule, IParameterized
 {
 
-  static public final String                                      ENABLE_BUFFER_STUFF_PARAM    = "EnableBufferStuff";
+  static public final String                                      ENABLE_BUFFER_STUFF_PARAM    = "EnableAuralBufferStuff";
 
   static public final String                                      AURAL_DECAY_TIME_PARAM       = "AuralDecayTime";
 
@@ -71,8 +70,8 @@ public abstract class AbstractAuralModule extends AbstractPerceptualModule
   /**
    * logger definition
    */
-  static private final Log                                        LOGGER                       = LogFactory
-                                                                                                   .getLog(AbstractAuralModule.class);
+  static private final transient org.slf4j.Logger                                        LOGGER                       = LoggerFactory
+                                                                                                   .getLogger(AbstractAuralModule.class);
 
   private IModelListener                                          _modelListener;
 
@@ -172,7 +171,8 @@ public abstract class AbstractAuralModule extends AbstractPerceptualModule
       @Override
       public void cycleStarted(ModelEvent me)
       {
-        if (isBufferStuffEnabled())
+        if (isBufferStuffEnabled()
+            && getAuralMemory().getFINSTFeatureMap().hasNew())
         {
           double lastTime = getAuralMemory().getLastChangeTime();
           if (lastTime >= _lastStuffAttempt)
@@ -208,7 +208,7 @@ public abstract class AbstractAuralModule extends AbstractPerceptualModule
     _internalChunk = getNamedChunk(INTERNAL_CHUNK);
     _externalChunk = getNamedChunk(EXTERNAL_CHUNK);
 
-    setRecodeTime(getNamedChunkType(TONE_CHUNK_TYPE), 0.5);
+    setRecodeTime(getNamedChunkType(TONE_CHUNK_TYPE), 0.285);
     setRecodeTime(getNamedChunkType(DIGIT_CHUNK_TYPE), 0.285);
     setRecodeTime(getNamedChunkType(SPEECH_CHUNK_TYPE), 1);
     setRecodeTime(getNamedChunkType(WORD_CHUNK_TYPE), 0.3);

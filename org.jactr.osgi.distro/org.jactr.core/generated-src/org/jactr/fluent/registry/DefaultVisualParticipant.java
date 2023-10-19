@@ -3,23 +3,24 @@ package org.jactr.fluent.registry;
 import java.awt.Color;
 import java.util.function.Consumer;
 
-/*
- * default logging
- */
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.chunktype.IChunkType;
 import org.jactr.core.model.IModel;
 import org.jactr.fluent.FluentChunk;
 import org.jactr.fluent.FluentChunkType;
+
+/*
+ * default logging
+ */
+ 
+import org.slf4j.LoggerFactory;
 
 public class DefaultVisualParticipant implements Consumer<IModel>
 {
   /**
    * Logger definition
    */
-  static private final transient Log LOGGER = LogFactory
-      .getLog(DefaultVisualParticipant.class);
+  static private final transient org.slf4j.Logger LOGGER = LoggerFactory
+      .getLogger(DefaultVisualParticipant.class);
 
   @Override
   public void accept(IModel model)
@@ -31,7 +32,7 @@ public class DefaultVisualParticipant implements Consumer<IModel>
 
     IChunkType visLoc = FluentChunkType.from(model).named("visual-location")
         .slots("screen-x", "screen-y", "distance", "color", "size", "kind",
-            "nearest", "value")
+            "value")
         .encode();
 
     FluentChunkType.fromParent(visLoc).named("set-default-visual-search");
@@ -41,8 +42,13 @@ public class DefaultVisualParticipant implements Consumer<IModel>
             "status", "color")
         .encode();
 
-    FluentChunkType.fromParent(visObj).named("gui").slots("text", "enabled")
+    IChunkType gui = FluentChunkType.fromParent(visObj).named("gui")
+        .slots("text", "enabled")
         .encode();
+
+    FluentChunkType.fromParent(gui).named("button-object").encode();
+    FluentChunkType.fromParent(gui).named("label-object").encode();
+    FluentChunkType.fromParent(gui).named("menu-object").encode();
     FluentChunkType.fromParent(visObj).named("text").encode();
     FluentChunkType.fromParent(visObj).named("empty-space").encode();
     FluentChunkType.fromParent(visObj).named("cursor").encode();

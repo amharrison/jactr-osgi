@@ -19,8 +19,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author harrison To change the template for this generated type comment go to
@@ -31,14 +30,14 @@ public class ModelParserFactory
 
   static private Map<String, Class< ? extends IModelParser>> _parsers;
 
-  static private Log                                         LOGGER = LogFactory
-                                                                        .getLog(ModelParserFactory.class);
+  static private org.slf4j.Logger                           LOGGER = LoggerFactory
+                                                                        .getLogger(ModelParserFactory.class);
 
   static
   {
     _parsers = new HashMap<String, Class< ? extends IModelParser>>();
     addParser("lisp", org.jactr.io.antlr3.parser.lisp.LispModelParser.class);
-    addParser("jactr", org.jactr.io.antlr3.parser.xml.JACTRModelParser.class);
+    addParser("jactrx", org.jactr.io.antlr3.parser.xml.JACTRModelParser.class);
   }
 
   /**

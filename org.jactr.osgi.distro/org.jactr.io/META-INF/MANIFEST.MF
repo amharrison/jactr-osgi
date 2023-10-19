@@ -5,8 +5,10 @@ Bundle-SymbolicName: org.jactr.io;singleton:=true
 Bundle-Version: 2.5.1.qualifier
 Require-Bundle: org.apache.commons.logging,
  org.jactr.core;bundle-version="2.5.1",
- org.commonreality.core;bundle-version="1.5.1"
-Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+ org.commonreality.core;bundle-version="1.5.1",
+ org.jactr.io2;bundle-version="2.5.1",
+ org.slf4j.api
+Bundle-RequiredExecutionEnvironment: JavaSE-21
 Automatic-Module-Name: org.commonreality.osgi
 Eclipse-BuddyPolicy: registered
 Eclipse-RegisterBuddy: org.apache.log4j

@@ -1,35 +1,23 @@
 package org.jactr.core.module.procedural.six;
 
-/*
- * default logging
- */
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Predicate;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.eclipse.collections.impl.factory.Maps;
+import org.eclipse.collections.impl.factory.Sets;
 import org.jactr.core.buffer.IActivationBuffer;
 import org.jactr.core.chunk.IChunk;
 import org.jactr.core.chunktype.IChunkType;
-import org.jactr.core.chunktype.event.ChunkTypeEvent;
-import org.jactr.core.chunktype.event.ChunkTypeListenerAdaptor;
-import org.jactr.core.chunktype.event.IChunkTypeListener;
-import org.jactr.core.module.declarative.event.DeclarativeModuleEvent;
-import org.jactr.core.module.declarative.event.DeclarativeModuleListenerAdaptor;
-import org.jactr.core.module.declarative.event.IDeclarativeModuleListener;
 import org.jactr.core.module.procedural.IConflictSetAssembler;
 import org.jactr.core.module.procedural.IProceduralModule;
-import org.jactr.core.module.procedural.event.IProceduralModuleListener;
-import org.jactr.core.module.procedural.event.ProceduralModuleEvent;
-import org.jactr.core.module.procedural.event.ProceduralModuleListenerAdaptor;
 import org.jactr.core.production.IProduction;
 import org.jactr.core.production.condition.ChunkTypeCondition;
-import org.jactr.core.production.condition.IBufferCondition;
 import org.jactr.core.production.condition.ICondition;
-import org.jactr.core.utils.collections.FastSetFactory;
+import org.slf4j.LoggerFactory;
 
 /**
  * monitors the procedural module for new productions. All productions are
@@ -49,142 +37,18 @@ public class DefaultConflictSetAssembler implements IConflictSetAssembler
   /**
    * Logger definition
    */
-  static private final transient Log                     LOGGER                       = LogFactory
-                                                                                          .getLog(DefaultConflictSetAssembler.class);
+  static private final transient org.slf4j.Logger LOGGER = LoggerFactory
+      .getLogger(DefaultConflictSetAssembler.class);
 
-  private IProceduralModule                              _module;
-
-  private boolean                                        _useFullIndexing             = false;
-
-  /**
-   * keyed by buffer name (null for ambiguous), then chunktype (null for query
-   * or ambiguous) to get the set
-   */
-  private Map<String, Map<IChunkType, Set<IProduction>>> _productionMap;
-
-  private IProceduralModuleListener                      _listener                    = new ProceduralModuleListenerAdaptor() {
-                                                                                        @Override
-                                                                                        public void productionAdded(
-                                                                                            ProceduralModuleEvent pme)
-                                                                                        {
-                                                                                          index(pme
-                                                                                              .getProduction());
-                                                                                        }
-                                                                                      };
-
-  private ReentrantReadWriteLock                         _lock                        = new ReentrantReadWriteLock();
-
-  /**
-   * used to detect new (extended or refined) chunktypes that may require
-   * reindexing
-   */
-  private IChunkTypeListener                             _chunkTypeListener           = new ChunkTypeListenerAdaptor() {
-                                                                                        @Override
-                                                                                        public void childAdded(
-                                                                                            ChunkTypeEvent cte)
-                                                                                        {
-                                                                                          /*
-                                                                                           * reindex
-                                                                                           */
-                                                                                          Set<IProduction> candidates = FastSetFactory
-                                                                                              .newInstance();
-                                                                                          for (IActivationBuffer buffer : getProceduralModule()
-                                                                                              .getModel()
-                                                                                              .getActivationBuffers())
-                                                                                          {
-                                                                                            candidates
-                                                                                                .clear();
-                                                                                            String bufferName = buffer
-                                                                                                .getName()
-                                                                                                .toLowerCase();
-                                                                                            getPossibleProductions(
-                                                                                                bufferName,
-                                                                                                cte.getSource(),
-                                                                                                candidates);
-
-                                                                                            for (IProduction production : candidates)
-                                                                                              add(bufferName,
-                                                                                                  cte.getChild(),
-                                                                                                  production);
-                                                                                          }
-
-                                                                                          FastSetFactory
-                                                                                              .recycle(candidates);
-                                                                                        }
-                                                                                      };
-
-  /**
-   * so we know when a new chunktype is encoded, allowing us to attach our
-   * listener
-   */
-  private IDeclarativeModuleListener                     _declarativeListener         = new DeclarativeModuleListenerAdaptor() {
-                                                                                        @Override
-                                                                                        public void chunkTypeAdded(
-                                                                                            DeclarativeModuleEvent dme)
-                                                                                        {
-                                                                                          // inline
-                                                                                          dme.getChunkType()
-                                                                                              .addListener(
-                                                                                                  _chunkTypeListener,
-                                                                                                  null);
-                                                                                        }
-                                                                                      };
-
-  private boolean                                        _declarativeListenerAttached = false;
+  private IProceduralModule                       _module;
 
   public DefaultConflictSetAssembler(boolean useFullIndexing)
   {
-    _productionMap = new HashMap<String, Map<IChunkType, Set<IProduction>>>();
-    _useFullIndexing = useFullIndexing;
   }
 
   public void setProceduralModule(IProceduralModule module)
   {
-    if (_module != null && module == null)
-    {
-      // remove listeneer
-      _module.removeListener(_listener);
-      _module.getModel().getDeclarativeModule()
-          .removeListener(_declarativeListener);
-      clear();
-    }
-
     _module = module;
-
-    if (_module != null) try
-    {
-      _module.addListener(_listener, null); // inline listening
-      for (IProduction production : module.getProductions().get())
-        index(production);
-    }
-    catch (Exception e)
-    {
-      LOGGER.error("Failed to preprocess existing productions ", e);
-    }
-  }
-
-  protected Set<IProduction> createSet()
-  {
-    return FastSetFactory.newInstance();
-  }
-
-  @SuppressWarnings("rawtypes")
-  protected void reclaimSet(Set<IProduction> productions)
-  {
-    FastSetFactory.recycle(productions);
-  }
-
-  protected void clear()
-  {
-    try
-    {
-      _lock.writeLock().lock();
-
-    }
-    finally
-    {
-      _lock.writeLock().unlock();
-    }
   }
 
   public IProceduralModule getProceduralModule()
@@ -192,253 +56,141 @@ public class DefaultConflictSetAssembler implements IConflictSetAssembler
     return _module;
   }
 
-  public Set<IProduction> getConflictSet(Set<IProduction> container)
+  protected Map<String, Collection<IChunkType>> bufferContentMap()
   {
-    if (!_declarativeListenerAttached)
+    Map<String, Collection<IChunkType>> rtn = Maps.mutable.empty();
+    Collection<IChunk> source = new ArrayList<>(2);
+
+    for (IActivationBuffer buffer : getProceduralModule().getModel()
+        .getActivationBuffers())
     {
-      _module.getModel().getDeclarativeModule()
-          .addListener(_declarativeListener, null);
-      _declarativeListenerAttached = true;
+      source.clear();
+      buffer.getSourceChunks(source);
+      source.forEach((c) -> {
+        rtn.computeIfAbsent(buffer.getName(), (key) -> {
+          return new ArrayList<>();
+        }).add(c.getSymbolicChunk().getChunkType());
+      });
     }
 
-    try
-    {
-      _lock.readLock().lock();
-
-      Set<IProduction> candidates = FastSetFactory.newInstance();
-      for (IActivationBuffer buffer : getProceduralModule().getModel()
-          .getActivationBuffers())
-      {
-        candidates.clear();
-
-        String bufferName = buffer.getName().toLowerCase();
-
-        /*
-         * first, the buffer ambiguous
-         */
-        getPossibleProductions(bufferName, null, candidates);
-
-        if (candidates.size() != 0)
-        {
-          if (LOGGER.isDebugEnabled())
-            LOGGER.debug(String.format("%s yielded %s", buffer, candidates));
-          container.addAll(candidates);
-        }
-        else if (LOGGER.isDebugEnabled())
-          LOGGER.debug(String.format(
-              "%s buffer yielded no ambiguous buffer productions", buffer));
-
-        // get the source contents
-        for (IChunk chunk : buffer.getSourceChunks())
-        {
-          candidates.clear();
-
-          IChunkType chunkType = chunk.getSymbolicChunk().getChunkType();
-          getPossibleProductions(buffer.getName(), chunkType, candidates);
-
-          if (candidates.size() != 0)
-          {
-            if (LOGGER.isDebugEnabled())
-              LOGGER.debug(String.format("Chunktype : %s in %s yielded %s",
-                  chunkType, buffer, candidates));
-
-            container.addAll(candidates);
-          }
-          else if (LOGGER.isDebugEnabled())
-            LOGGER.debug(String.format(
-                "%s in %s buffer yielded no candidate productions", chunk,
-                buffer.getName()));
-        }
-
-      }
-
-      // and the completely ambiguous set
-      candidates.clear();
-      getPossibleProductions(null, null, candidates);
-
-      if (LOGGER.isDebugEnabled())
-        LOGGER.debug(String.format("Ambiguous productions %s", candidates));
-
-      container.addAll(candidates);
-
-      FastSetFactory.recycle(candidates);
-
-      return container;
-    }
-    finally
-    {
-      _lock.readLock().unlock();
-    }
+    return rtn;
   }
 
-  public Set<IProduction> getPossibleProductions(String bufferName,
-      IChunkType chunkType, Set<IProduction> container)
+  protected Map<IProduction, Boolean> createMapForPredicate()
   {
-    try
-    {
-      _lock.readLock().lock();
+    return Maps.mutable.empty();
+  }
 
-      Map<IChunkType, Set<IProduction>> tree = _productionMap.get(bufferName);
-      if (tree != null)
+  protected Predicate<IProduction> getSelectionPredicate(
+      Map<String, Collection<IChunkType>> bufferContents)
+  {
+    final Map<IProduction, Boolean> alreadyTested = createMapForPredicate();
+
+    return (prod) -> {
+
+      return alreadyTested.computeIfAbsent(prod, p -> {
+        for (ICondition condition : p.getSymbolicProduction().getConditions())
+          if (condition instanceof ChunkTypeCondition)
+          {
+            ChunkTypeCondition ctc = (ChunkTypeCondition) condition;
+            Collection<IChunkType> currentTypes = bufferContents
+                .getOrDefault(ctc.getBufferName(), Collections.emptyList());
+            boolean matches = currentTypes.stream().anyMatch(ct -> {
+              return ct.isA(ctc.getChunkType());
+            });
+
+            if (!matches) return Boolean.FALSE;
+          }
+        return Boolean.TRUE;
+      });
+    };
+
+  }
+
+  protected Set<IProduction> getConflictSetForBuffer(IActivationBuffer buffer,
+      Predicate<IProduction> selector, Set<IProduction> container)
+  {
+    Set<IProduction> candidates = Sets.mutable.empty();
+    String bufferName = buffer.getName().toLowerCase();
+
+    /*
+     * first, the buffer ambiguous
+     */
+    getPossibleProductions(bufferName, null, candidates, selector);
+
+    if (candidates.size() != 0)
+    {
+      if (LOGGER.isDebugEnabled())
+        LOGGER.debug(String.format("%s yielded %s", buffer, candidates));
+      container.addAll(candidates);
+    }
+    else if (LOGGER.isDebugEnabled()) LOGGER.debug(String
+        .format("%s buffer yielded no ambiguous buffer productions", buffer));
+
+    // get the source contents
+    for (IChunk chunk : buffer.getSourceChunks())
+    {
+      candidates.clear();
+
+      IChunkType chunkType = chunk.getSymbolicChunk().getChunkType();
+      getPossibleProductions(buffer.getName(), chunkType, candidates, selector);
+
+      if (candidates.size() != 0)
       {
-        Set<IProduction> productions = tree.get(chunkType);
+        if (LOGGER.isDebugEnabled())
+          LOGGER.debug(String.format("Chunktype : %s in %s yielded %s",
+              chunkType, buffer, candidates));
 
-        if (productions != null) container.addAll(productions);
+        container.addAll(candidates);
       }
+      else if (LOGGER.isDebugEnabled()) LOGGER.debug(
+          String.format("%s in %s buffer yielded no candidate productions",
+              chunk, buffer.getName()));
     }
-    finally
-    {
-      _lock.readLock().unlock();
-    }
-
     return container;
   }
 
-  public Set<IProduction> getPossibleProductions(String bufferName,
-      Set<IProduction> container)
+  public Set<IProduction> getConflictSet(Set<IProduction> container)
   {
-    return getPossibleProductions(bufferName, null, container);
-  }
-
-  public Set<IProduction> getAmbiguousProductions(Set<IProduction> container)
-  {
-    return getPossibleProductions(null, null, container);
-  }
-
-  protected void index(IProduction production)
-  {
-    indexInternal(production);
-  }
-
-  protected void unindex(IProduction production)
-  {
-    LOGGER.warn("unindexing is not implemented currently");
-  }
-
-  protected void indexInternal(IProduction production)
-  {
-    Map<String, Set<IChunkType>> map = new TreeMap<String, Set<IChunkType>>();
-    Set<String> ambiguous = FastSetFactory.newInstance();
-    int minimumSize = Integer.MAX_VALUE;
-
-    for (ICondition condition : production.getSymbolicProduction()
-        .getConditions())
-      if (condition instanceof IBufferCondition)
-      {
-        String bufferName = ((IBufferCondition) condition).getBufferName();
-
-        if (condition instanceof ChunkTypeCondition)
-        {
-          IChunkType ct = ((ChunkTypeCondition) condition).getChunkType();
-
-          if (ct != null)
-          {
-            Set<IChunkType> chunkTypes = map.get(bufferName);
-            if (chunkTypes == null)
-            {
-              chunkTypes = FastSetFactory.newInstance();
-              map.put(bufferName, chunkTypes);
-            }
-
-            chunkTypes.add(ct);
-            chunkTypes.addAll(ct.getSymbolicChunkType().getChildren());
-
-            /*
-             * the smallest will also be the most specific condition (in terms
-             * of chunktype only)
-             */
-            if (minimumSize > chunkTypes.size())
-              minimumSize = chunkTypes.size();
-          }
-          else
-            ambiguous.add(bufferName);
-
-        }
-        else
-          // ambiguous, use a null chunktype
-          ambiguous.add(bufferName);
-      }
-
-    /*
-     * a completely ambiguous production has no buffer conditions at all
-     */
-    if (ambiguous.size() == 0 && map.size() == 0)
-      add(null, null, production);
-    else if (_useFullIndexing)
+    Map<String, Collection<IChunkType>> chunkTypesInBuffers = bufferContentMap();
+    Predicate<IProduction> selector = getSelectionPredicate(
+        chunkTypesInBuffers);
+    for (IActivationBuffer buffer : getProceduralModule().getModel()
+        .getActivationBuffers())
     {
-      /*
-       * if we are indexing everyone, do so.
-       */
-      for (String buffer : ambiguous)
-        add(buffer, null, production);
-
-      for (Map.Entry<String, Set<IChunkType>> entry : map.entrySet())
-      {
-        for (IChunkType chunkType : entry.getValue())
-          add(entry.getKey(), chunkType, production);
-
-        FastSetFactory.recycle(entry.getValue());
-      }
+      Set<IProduction> candidates = getConflictSetForBuffer(buffer, selector,
+          Sets.mutable.empty());
+      container.addAll(candidates);
     }
-    else // no chunktype info? damn, have to use the ambiguous
-    if (map.size() == 0)
-      for (String buffer : ambiguous)
-        add(buffer, null, production);
-    else
-      /*
-       * if we have chunktype info, use it.
-       */
-      for (Map.Entry<String, Set<IChunkType>> entry : map.entrySet())
-      {
-        if (entry.getValue().size() == minimumSize)
-          for (IChunkType chunkType : entry.getValue())
-            add(entry.getKey(), chunkType, production);
 
-        FastSetFactory.recycle(entry.getValue());
-      }
+    // and the completely ambiguous set
+    container.addAll(
+        getPossibleProductions(null, null, Sets.mutable.empty(), selector));
 
-    FastSetFactory.recycle(ambiguous);
+    if (LOGGER.isDebugEnabled())
+      LOGGER.debug(String.format("%d candidates", container.size()));
+
+    return container;
+
   }
 
-  /**
-   * add production to the tree based on buffer (null for completely ambiguous),
-   * and chunktype (null for type ambiguous)
-   * 
-   * @param bufferName
-   * @param chunkType
-   * @param production
-   */
-  private void add(String bufferName, IChunkType chunkType,
-      IProduction production)
+  protected Set<IProduction> getPossibleProductions(String bufferName,
+      IChunkType chunkType, Set<IProduction> container,
+      Predicate<IProduction> selector)
   {
-    try
-    {
-      _lock.writeLock().lock();
-
-      if (LOGGER.isDebugEnabled())
-        LOGGER.debug(String.format("Indexing %s by %s & %s", production,
-            bufferName, chunkType));
-
-      Map<IChunkType, Set<IProduction>> tree = _productionMap.get(bufferName);
-      if (tree == null)
-      {
-        tree = new HashMap<IChunkType, Set<IProduction>>();
-        _productionMap.put(bufferName, tree);
-      }
-
-      Set<IProduction> productions = tree.get(chunkType);
-      if (productions == null)
-      {
-        productions = createSet();
-        tree.put(chunkType, productions);
-      }
-
-      productions.add(production);
-    }
-    finally
-    {
-      _lock.writeLock().unlock();
-    }
+    return getProceduralModule().getProductionStorage()
+        .getProductions(bufferName, chunkType, container, selector);
   }
 
+  protected Set<IProduction> getPossibleProductions(String bufferName,
+      Set<IProduction> container, Predicate<IProduction> selector)
+  {
+    return getPossibleProductions(bufferName, null, container, selector);
+  }
+
+  protected Set<IProduction> getAmbiguousProductions(Set<IProduction> container,
+      Predicate<IProduction> selector)
+  {
+    return getPossibleProductions(null, null, container, selector);
+  }
 }

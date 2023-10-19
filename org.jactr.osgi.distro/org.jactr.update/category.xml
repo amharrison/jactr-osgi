@@ -3,8 +3,12 @@
    <description name="jACT-R Main Update site" url="http://jactr.org/update/core/">
       jACT-R update site
    </description>
-   <feature url="features/org.jactr.osgi.feature_2.5.1.qualifier.jar" id="org.jactr.osgi.feature" version="2.5.1.qualifier">
+   <feature id="org.jactr.osgi.feature" version="2.5.1.qualifier">
       <category name="org.jactr"/>
    </feature>
+   <feature id="org.jactr.osgi.feature.source" version="2.5.1.qualifier">
+      <category name="source_components"/>
+   </feature>
    <category-def name="org.jactr" label="jACT-R : Core"/>
+   <category-def name="source_components" label="jACT-R : Developer Resources"/>
 </site>

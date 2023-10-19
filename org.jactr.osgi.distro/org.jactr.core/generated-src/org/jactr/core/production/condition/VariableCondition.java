@@ -13,13 +13,15 @@
  */
 package org.jactr.core.production.condition;
 
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.jactr.core.buffer.IActivationBuffer;
+import org.jactr.core.buffer.meta.IMetaBuffer;
 import org.jactr.core.chunk.IChunk;
 import org.jactr.core.model.IModel;
 import org.jactr.core.production.VariableBindings;
 import org.jactr.core.production.condition.match.GeneralMatchFailure;
+import org.jactr.core.production.request.ChunkTypeRequest;
+import org.jactr.core.production.request.IRequest;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author harrison TODO To change the template for this generated type comment
@@ -31,10 +33,12 @@ public class VariableCondition extends AbstractBufferCondition
    * Logger definition
    */
 
-  static private final transient Log LOGGER = LogFactory
-                                                .getLog(VariableCondition.class);
+  static private final transient org.slf4j.Logger LOGGER = LoggerFactory
+      .getLogger(VariableCondition.class);
 
-  private String                     _variableName;
+  private String                                  _variableName;
+
+  private IRequest                                _indirectRequest;
 
   /**
    * @param bufferName
@@ -61,20 +65,73 @@ public class VariableCondition extends AbstractBufferCondition
   {
     int unresolved = 0;
 
-    IChunk resolvedChunk = (IChunk) variableBindings.get(getVariableName());
+    String variableName = getVariableName();
+    String bufferVariable = "=" + getBufferName();
 
-    if (resolvedChunk == null && !isIterative)
+    /**
+     * <code>
+     * =buffer>
+     *  =buffer
+     * </code>
+     */
+    if (variableName.equals(bufferVariable))
+    {
+      IActivationBuffer buffer = model.getActivationBuffer(getBufferName());
+      if (buffer.getSourceChunk() != null) return 0;
+
+      if (buffer instanceof IMetaBuffer
+          && ((IMetaBuffer) buffer).getContents() != null)
+        return 0;
+    }
+
+    Object resolvedValue = variableBindings.get(variableName);
+
+    if (resolvedValue == null && !isIterative)
       throw new CannotMatchException(new GeneralMatchFailure(this,
-          String.format("%s is undefined", getVariableName())));
+          String.format("%s is undefined", variableName)));
 
     try
     {
-      if (resolvedChunk == null)
-        unresolved = getRequest().bind(model, variableBindings, isIterative) + 1;
-      else
+      if (resolvedValue == null)
+        unresolved = getRequest().bind(model, variableBindings, isIterative)
+            + 1;
+      else if (resolvedValue instanceof IChunk)
+      {
+        IChunk resolvedChunk = (IChunk) resolvedValue;
         unresolved = getRequest().bind(model,
             resolvedChunk.getSymbolicChunk().getName(),
             resolvedChunk.getSymbolicChunk(), variableBindings, isIterative);
+      }
+      else if (resolvedValue instanceof IRequest)
+      {
+        /**
+         * indirect request, where meta is a request <code>
+         * =meta>
+         *  =meta
+         * 
+         * =retrieval>
+         *  =meta
+         * </code>
+         */
+        if (_indirectRequest == null)
+          _indirectRequest = ((IRequest) resolvedValue).clone();
+
+        if (_indirectRequest instanceof ChunkTypeRequest)
+        {
+          IChunk testChunk = (IChunk) variableBindings.get(bufferVariable);
+
+          unresolved = ((ChunkTypeRequest) _indirectRequest).bind(testChunk,
+              model.getActivationBuffer(getBufferName()), variableBindings,
+              isIterative);
+        }
+        else
+          unresolved = _indirectRequest.bind(model, variableBindings,
+              isIterative);
+      }
+      else
+        throw new CannotMatchException(new GeneralMatchFailure(this,
+            String.format("%s is %s. Don't know how to proceed.", variableName,
+                resolvedValue.getClass().getSimpleName())));
     }
     catch (CannotMatchException cme)
     {
@@ -109,7 +166,5 @@ public class VariableCondition extends AbstractBufferCondition
     else if (!_variableName.equals(other._variableName)) return false;
     return true;
   }
-
-
 
 }

@@ -9,9 +9,13 @@
 		<version>2.5.1-SNAPSHOT</version>
 
 	</parent>
-	
+
 	<artifactId>org.jactr.osgi</artifactId>
 
 	<packaging>eclipse-plugin</packaging>
+	<dependencies>
+
+		
+	</dependencies>
 
 </project>

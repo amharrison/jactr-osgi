@@ -10,15 +10,15 @@ Import-Package: org.osgi.framework;version="1.3.0"
 Bundle-ActivationPolicy: lazy
 Eclipse-BuddyPolicy: registered
 Eclipse-RegisterBuddy: org.commonreality.osgi
-Require-Bundle: org.eclipse.equinox.registry,
- org.eclipse.core.runtime,
- org.apache.commons.logging,
- org.apache.commons.lang;bundle-version="2.6.0",
- org.apache.commons.cli;bundle-version="1.2.0",
- org.apache.commons.collections;bundle-version="3.2.2",
- org.eclipse.collections;bundle-version="9.2.0",
- org.apache.commons.math;bundle-version="2.1.0",
+Require-Bundle: org.apache.commons.logging,
  org.jactr.core;bundle-version="2.5.1",
  org.jactr.io;bundle-version="2.5.1",
- org.jactr.tools;bundle-version="2.5.1"
+ org.jactr.tools;bundle-version="2.5.1",
+ org.eclipse.equinox.registry,
+ org.eclipse.core.runtime,
+ org.jactr.io2;bundle-version="2.5.1",
+ org.jactr.modules.threaded;bundle-version="2.5.1",
+ org.jactr.modules.timing;bundle-version="2.5.1",
+ org.jactr.tools.experiment;bundle-version="2.5.1"
 Bundle-ClassPath: .
+Export-Package: org.jactr.osgi

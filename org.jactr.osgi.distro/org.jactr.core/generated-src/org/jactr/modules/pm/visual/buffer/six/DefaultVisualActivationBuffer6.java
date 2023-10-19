@@ -15,8 +15,6 @@ package org.jactr.modules.pm.visual.buffer.six;
 
 import java.util.Collection;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.buffer.IActivationBuffer;
 import org.jactr.core.buffer.delegate.AddChunkRequestDelegate;
 import org.jactr.core.chunk.IChunk;
@@ -25,6 +23,7 @@ import org.jactr.core.logging.Logger;
 import org.jactr.core.model.IModel;
 import org.jactr.core.module.procedural.five.learning.ICompilableBuffer;
 import org.jactr.core.module.procedural.five.learning.ICompilableContext;
+import org.jactr.core.module.procedural.six.learning.DefaultCompilableContext;
 import org.jactr.core.production.request.IRequest;
 import org.jactr.modules.pm.common.buffer.AbstractPMActivationBuffer6;
 import org.jactr.modules.pm.common.buffer.AbstractRequestDelegate;
@@ -35,6 +34,7 @@ import org.jactr.modules.pm.visual.buffer.processor.AttendToRequestDelegate;
 import org.jactr.modules.pm.visual.buffer.processor.ClearRequestDelegate;
 import org.jactr.modules.pm.visual.buffer.processor.SetDefaultSearchRequestDelegate;
 import org.jactr.modules.pm.visual.buffer.processor.StartTrackingRequestDelegate;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author developer
@@ -45,16 +45,14 @@ public class DefaultVisualActivationBuffer6 extends AbstractPMActivationBuffer6
   /**
    * logger definition
    */
-  static public final Log           LOGGER = LogFactory
-                                               .getLog(DefaultVisualActivationBuffer6.class);
+  static public final transient org.slf4j.Logger           LOGGER = LoggerFactory
+                                               .getLogger(DefaultVisualActivationBuffer6.class);
 
   protected IChunkType              _visualChunkType;
 
   protected AttendToRequestDelegate _moveAttentionDelegate;
 
   protected AttendToRequestDelegate _attendToDelegate;
-  
-  protected ICompilableContext _compilableContext = new VisualCompilableContext();
 
   public DefaultVisualActivationBuffer6(IVisualModule module)
   {
@@ -228,6 +226,12 @@ public class DefaultVisualActivationBuffer6 extends AbstractPMActivationBuffer6
     else
       // we need to mark this chunk as having been attended
       module.assignFINST(getSourceChunk());
+  }
+
+  @Override
+  public ICompilableContext getCompilableContext()
+  {
+    return new DefaultCompilableContext(false, false, true, false, false, true);
   }
 
 }

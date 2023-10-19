@@ -6,8 +6,6 @@ package org.jactr.modules.pm.visual.memory.impl.filter;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.chunk.IChunk;
 import org.jactr.core.chunktype.IChunkType;
 import org.jactr.core.production.request.ChunkTypeRequest;
@@ -16,14 +14,15 @@ import org.jactr.modules.pm.common.memory.IPerceptualMemory;
 import org.jactr.modules.pm.common.memory.filter.IIndexFilter;
 import org.jactr.modules.pm.visual.IVisualModule;
 import org.jactr.modules.pm.visual.memory.IVisualMemory;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractVisualLocationIndexFilter<T> implements IIndexFilter
 {
   /**
    * Logger definition
    */
-  static private final transient Log LOGGER = LogFactory
-                                                .getLog(AbstractVisualLocationIndexFilter.class);
+  static private final transient org.slf4j.Logger LOGGER = LoggerFactory
+                                                .getLogger(AbstractVisualLocationIndexFilter.class);
 
   private IVisualMemory              _visualMemory;
 
@@ -128,6 +127,19 @@ public abstract class AbstractVisualLocationIndexFilter<T> implements IIndexFilt
     return rtn;
   }
 
-  
+  protected double[] getCoordinates(ChunkTypeRequest request)
+  {
+    double x = Double.NaN;
+    double y = Double.NaN;
+
+    for (IConditionalSlot cSlot : request.getConditionalSlots())
+      if (cSlot.getCondition() == IConditionalSlot.EQUALS)
+        if (cSlot.getName().equals(IVisualModule.SCREEN_X_SLOT))
+        x = ((Number) cSlot.getValue()).doubleValue();
+        else if (cSlot.getName().equals(IVisualModule.SCREEN_Y_SLOT))
+          y = ((Number) cSlot.getValue()).doubleValue();
+
+    return new double[] { x, y };
+  }
 
 }

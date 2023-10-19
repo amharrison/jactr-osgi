@@ -18,11 +18,8 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.commonreality.agents.IAgent;
 import org.commonreality.identifier.IIdentifier;
-import org.commonreality.object.manager.IAfferentObjectManager;
 import org.eclipse.collections.impl.list.mutable.FastList;
 import org.jactr.core.buffer.six.IStatusBuffer;
 import org.jactr.core.chunk.IChunk;
@@ -48,14 +45,15 @@ import org.jactr.modules.pm.common.memory.event.ActivePerceptEvent;
 import org.jactr.modules.pm.common.memory.filter.IIndexFilter;
 import org.jactr.modules.pm.common.memory.map.IFINSTFeatureMap;
 import org.jactr.modules.pm.common.memory.map.IFeatureMap;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractPerceptualMemory implements IPerceptualMemory
 {
   /**
    * Logger definition
    */
-  static private final transient Log                                           LOGGER             = LogFactory
-                                                                                                      .getLog(AbstractPerceptualMemory.class);
+  static private final transient org.slf4j.Logger                              LOGGER             = LoggerFactory
+      .getLogger(AbstractPerceptualMemory.class);
 
   static public final String                                                   PRECODE_ONSET_TIME = ":precode-onset";
 
@@ -267,9 +265,8 @@ public abstract class AbstractPerceptualMemory implements IPerceptualMemory
   @SuppressWarnings("unchecked")
   public void addFeatureMap(IFeatureMap featureMap)
   {
-    if (_agent != null)
-      throw new IllegalStateException(
-          "Cannot add featuremaps to a running model");
+    if (_agent != null) throw new IllegalStateException(
+        "Cannot add featuremaps to a running model");
 
     _featureMaps.add(featureMap);
     featureMap.setPerceptualMemory(this);
@@ -405,15 +402,17 @@ public abstract class AbstractPerceptualMemory implements IPerceptualMemory
       // normalize
       filter.normalizeRequest(request);
 
-      IIndexFilter actualFilter = filter.instantiate(request);
+      for (IIndexFilter actualFilter : filter.instantiate(request))
+      {
 
-      if (actualFilter == null) continue;
+        if (actualFilter == null) continue;
 
-      int weight = actualFilter.getWeight();
-      while (sorted.containsKey(weight))
-        weight++;
+        int weight = actualFilter.getWeight();
+        while (sorted.containsKey(weight))
+          weight++;
 
-      sorted.put(weight, actualFilter);
+        sorted.put(weight, actualFilter);
+      }
     }
 
     FastListFactory.recycle(filters);
@@ -444,6 +443,10 @@ public abstract class AbstractPerceptualMemory implements IPerceptualMemory
             container.retainAll(candidates);
 
           firstRun = false;
+
+          if (LOGGER.isDebugEnabled())
+            LOGGER.debug(String.format("Got %d candidates from %s",
+                candidates.size(), featureMap.getClass().getSimpleName()));
 
           if (container.size() == 0)
           {
@@ -562,6 +565,20 @@ public abstract class AbstractPerceptualMemory implements IPerceptualMemory
     if (LOGGER.isDebugEnabled())
       LOGGER.debug("Searching perceptual memory : " + request);
 
+    IAgent agent = ACTRRuntime.getRuntime().getConnector()
+        .getAgent(getModule().getModel());
+
+    if (agent == null)
+    {
+      if (LOGGER.isWarnEnabled()) LOGGER.warn(String.format(
+          "No IAgent found, model is in the midst of a shutdown. Ignoring request"));
+
+      PerceptualSearchResult psr = new PerceptualSearchResult(null, null, null,
+          request, request);
+      psr.setErrorCode(getNamedChunk(IStatusBuffer.ERROR_UNKNOWN_CHUNK));
+      return psr;
+    }
+
     /*
      * which then build the priority sort
      */
@@ -595,52 +612,10 @@ public abstract class AbstractPerceptualMemory implements IPerceptualMemory
     List<IIdentifier> candidateIdentifiers = FastListFactory.newInstance();
     getCandidateIdentifiers(request, featureMaps, candidateIdentifiers);
 
-    IAgent agent = ACTRRuntime.getRuntime().getConnector()
-        .getAgent(getModule().getModel());
-
-    if (agent == null)
-    {
-      if (LOGGER.isWarnEnabled())
-        LOGGER
-            .warn(String
-                .format("No IAgent found, model is in the midst of a shutdown. Ignoring request"));
-
-      PerceptualSearchResult psr = new PerceptualSearchResult(null, null, null,
-          request, request);
-      psr.setErrorCode(getNamedChunk(IStatusBuffer.ERROR_UNKNOWN_CHUNK));
-      return psr;
-    }
-
-    /*
-     * now we need to check the actual chunks that have been encoded
-     */
-    IAfferentObjectManager objectManager = agent.getAfferentObjectManager();
-
-    /**
-     * nothing to match.
-     */
-    if (objectManager.getIdentifiers().size() == 0)
-    {
-      if (LOGGER.isDebugEnabled())
-        LOGGER.debug(String.format("Nothing to match"));
-      PerceptualSearchResult psr = new PerceptualSearchResult(null, null, null,
-          request, request);
-      psr.setErrorCode(getNamedChunk(IStatusBuffer.ERROR_NOTHING_AVAILABLE_CHUNK));
-      return psr;
-    }
-
     for (IIdentifier identifier : candidateIdentifiers)
     {
       // early exit
       if (earlyExit && prioritizedResults.size() > 1) break;
-
-      // object no longer exists
-      if (objectManager.get(identifier) == null)
-      {
-        if (LOGGER.isDebugEnabled())
-          LOGGER.debug("No afferent object associated with " + identifier);
-        continue;
-      }
 
       for (PerceptualEncoderBridge bridge : _bridges)
       {
@@ -654,7 +629,8 @@ public abstract class AbstractPerceptualMemory implements IPerceptualMemory
         if (LOGGER.isDebugEnabled())
           LOGGER.debug(bridge.getEncoder() + " encoded " + identifier);
 
-        ChunkTypeRequest template = new ChunkTypeRequest(request.getChunkType());
+        ChunkTypeRequest template = new ChunkTypeRequest(
+            request.getChunkType());
 
         /*
          * explicitly add precode onset. except that this could screw up if
@@ -733,24 +709,27 @@ public abstract class AbstractPerceptualMemory implements IPerceptualMemory
       }
     }
 
-    /**
-     * no match
-     */
-    if (prioritizedResults.size() == 0)
+    PerceptualSearchResult rtn = null;
+
+    try
     {
-      if (LOGGER.isDebugEnabled())
-        LOGGER.debug(String.format("Nothing matches %s", request));
-      PerceptualSearchResult psr = new PerceptualSearchResult(null, null, null,
-          request, request);
-      psr.setErrorCode(getNamedChunk(IStatusBuffer.ERROR_NOTHING_MATCHES_CHUNK));
-      return psr;
-    }
+      /**
+       * no match
+       */
+      if (prioritizedResults.size() == 0)
+      {
+        if (LOGGER.isDebugEnabled())
+          LOGGER.debug(String.format("Nothing matches %s", request));
+        PerceptualSearchResult psr = new PerceptualSearchResult(null, null,
+            null, request, request);
+        psr.setErrorCode(
+            getNamedChunk(IStatusBuffer.ERROR_NOTHING_MATCHES_CHUNK));
+        return psr;
+      }
 
-    PerceptualSearchResult rtn = select(prioritizedResults.firstEntry()
-        .getValue());
+      rtn = select(prioritizedResults.firstEntry().getValue());
 
-    if (rtn != null)
-      try
+      if (rtn != null) try
       {
         fillIndexChunk(rtn.getLocation(), rtn.getPercept(), rtn.getRequest(),
             rtn.getLocationRequest());
@@ -761,30 +740,35 @@ public abstract class AbstractPerceptualMemory implements IPerceptualMemory
       }
       catch (Exception e)
       {
-        if (LOGGER.isWarnEnabled())
-          LOGGER
-              .warn(
-                  String
-                      .format(
-                          "Processing of search result (%s) @ %s of %s failed, returning null",
-                          rtn.getRequest(), rtn.getLocation(),
-                          rtn.getPerceptIdentifier()), e);
+        if (LOGGER.isWarnEnabled()) LOGGER.warn(String.format(
+            "Processing of search result (%s) @ %s of %s failed, returning null",
+            rtn.getRequest(), rtn.getLocation(), rtn.getPerceptIdentifier()),
+            e);
         rtn = null;
       }
 
-    if (rtn == null)
-    {
-      if (LOGGER.isDebugEnabled())
-        LOGGER.debug(String.format("Nothing matches %s", request));
-      PerceptualSearchResult psr = new PerceptualSearchResult(null, null, null,
-          request, request);
-      psr.setErrorCode(getNamedChunk(IStatusBuffer.ERROR_NOTHING_MATCHES_CHUNK));
-      return psr;
+      if (rtn == null)
+      {
+        if (LOGGER.isDebugEnabled())
+          LOGGER.debug(String.format("Nothing matches %s", request));
+        PerceptualSearchResult psr = new PerceptualSearchResult(null, null,
+            null, request, request);
+        psr.setErrorCode(
+            getNamedChunk(IStatusBuffer.ERROR_NOTHING_MATCHES_CHUNK));
+        return psr;
+      }
     }
+    finally
+    {
 
-    FastListFactory.recycle(candidateIdentifiers);
-    FastListFactory.recycle(featureMaps);
-    FastListFactory.recycle(filters);
+      filters.forEach(filter -> {
+        filter.dispose();
+      });
+
+      FastListFactory.recycle(candidateIdentifiers);
+      FastListFactory.recycle(featureMaps);
+      FastListFactory.recycle(filters);
+    }
 
     return rtn;
   }
@@ -852,17 +836,15 @@ public abstract class AbstractPerceptualMemory implements IPerceptualMemory
   protected IChunk getNamedChunk(String name)
   {
     IChunk rtn = _namedChunkCache.get(name);
-    if (rtn == null)
-      try
-      {
-        rtn = _module.getModel().getDeclarativeModule().getChunk(name).get();
-        _namedChunkCache.put(name, rtn);
-      }
-      catch (Exception e)
-      {
-        LOGGER.error(String.format("Failed to get chunk %s from model", name),
-            e);
-      }
+    if (rtn == null) try
+    {
+      rtn = _module.getModel().getDeclarativeModule().getChunk(name).get();
+      _namedChunkCache.put(name, rtn);
+    }
+    catch (Exception e)
+    {
+      LOGGER.error(String.format("Failed to get chunk %s from model", name), e);
+    }
     return rtn;
   }
 

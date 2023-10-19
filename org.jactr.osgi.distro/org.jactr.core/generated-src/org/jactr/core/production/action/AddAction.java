@@ -16,8 +16,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.buffer.IActivationBuffer;
 import org.jactr.core.buffer.IRequestableBuffer;
 import org.jactr.core.buffer.delegate.AddChunkRequestDelegate;
@@ -34,6 +32,7 @@ import org.jactr.core.production.request.IRequest;
 import org.jactr.core.production.request.SlotBasedRequest;
 import org.jactr.core.slot.IMutableSlot;
 import org.jactr.core.slot.ISlot;
+import org.slf4j.LoggerFactory;
 
 /**
  * AddAction represents the consequence of adding a chunk to a buffer. It can
@@ -43,13 +42,12 @@ import org.jactr.core.slot.ISlot;
  * @author harrison
  * @created January 22, 2003
  */
-public class AddAction extends DefaultAction implements IBufferAction,
-    org.jactr.core.slot.ISlotContainer
+public class AddAction extends DefaultAction
+    implements IBufferAction, org.jactr.core.slot.ISlotContainer
 {
 
-  private static transient Log               LOGGER = LogFactory
-                                                        .getLog(AddAction.class
-                                                            .getName());
+  private static transient org.slf4j.Logger  LOGGER = LoggerFactory
+      .getLogger(AddAction.class.getName());
 
   static private AddChunkTypeRequestDelegate _chunkTypeDelegate;
 
@@ -68,7 +66,7 @@ public class AddAction extends DefaultAction implements IBufferAction,
    * 
    * @since
    */
-  private String                             _bufferName;
+  private String                   _bufferName;
 
   // required
   /**
@@ -76,15 +74,14 @@ public class AddAction extends DefaultAction implements IBufferAction,
    * 
    * @since
    */
-  private Collection<IMutableSlot>           _slots;
+  private Collection<IMutableSlot> _slots;
 
   /**
-   * referant can be either a chunkname, a variable name, a chunktype or a chunk
-   * proper
+   * referant can be a chunk, chunktype, string (variable name), or null.
    * 
    * @since
    */
-  private Object                             _referant;
+  private Object                   _referant;
 
   /**
    * default constructor equivalent to AddAction("goal", null)
@@ -172,6 +169,11 @@ public class AddAction extends DefaultAction implements IBufferAction,
     _referant = o;
   }
 
+  public boolean isDelayedRequest()
+  {
+    return _referant == null;
+  }
+
   public IAction bind(VariableBindings bindings)
       throws CannotInstantiateException
   {
@@ -185,24 +187,34 @@ public class AddAction extends DefaultAction implements IBufferAction,
       throws CannotInstantiateException
   {
     String name = getChunkName();
-    if (name != null)
-      if (name.startsWith("="))
+    if (name != null) if (name.startsWith("="))
+    {
+      /*
+       * the punk is a variable name..
+       */
+      Object resolved = resolve(name, bindings);
+      if (resolved instanceof IRequest)
       {
-        /*
-         * the punk is a variable name..
-         */
-        Object resolved = resolve(name, bindings);
+        // clone so we don't overwrite the one in the buffer
+        resolved = ((IRequest) resolved).clone();
 
-        if (resolved == null)
-          throw new CannotInstantiateException(
-              "Could not resolve variable name " + name + " possible:"
-                  + bindings);
+        // add any tag on slots to the cloned request
+        for (ISlot slot : _slots)
+          ((SlotBasedRequest) resolved).addSlot(slot);
 
-        if (LOGGER.isDebugEnabled())
-          LOGGER.debug("Resolved " + name + " to " + resolved + "("
-              + resolved.getClass().getName() + ") " + bindings);
-        setReferant(resolved);
+        // resolve any bindings in the request
+        bindSlotValues(bindings,
+            (Collection<? extends IMutableSlot>) ((SlotBasedRequest) resolved)
+                .getSlots());
       }
+
+      if (resolved == null) throw new CannotInstantiateException(
+          "Could not resolve variable name " + name + " possible:" + bindings);
+
+      if (LOGGER.isDebugEnabled()) LOGGER.debug("Resolved " + name + " to "
+          + resolved + "(" + resolved.getClass().getName() + ") " + bindings);
+      setReferant(resolved);
+    }
   }
 
   /**
@@ -308,7 +320,7 @@ public class AddAction extends DefaultAction implements IBufferAction,
   {
     return _slots;
   }
-  
+
   /**
    * Return all the slots that this addaction will attempt to set for the to be
    * added chunk.
@@ -340,7 +352,7 @@ public class AddAction extends DefaultAction implements IBufferAction,
    */
   public void addSlot(ISlot s)
   {
-    _slots.add((IMutableSlot)s.clone());
+    _slots.add((IMutableSlot) s.clone());
   }
 
   /**
@@ -356,8 +368,12 @@ public class AddAction extends DefaultAction implements IBufferAction,
   }
 
   /**
-   * return a mutable copy of the request that underlies this action.
-   * 
+   * return a mutable copy of the request that underlies this action. This is
+   * only valid after binding. If {@link #getReferant()} is null, this will
+   * return an untyped SlotBasedRequest. If it was a string, it represented a
+   * variable name that at binding was changed to a chunk. If it is a chunk, the
+   * request will be a ChunkRequest. Chunktypes will yield ChunkTypeRequests
+   *
    * @return
    */
   public IRequest getRequest()
@@ -370,21 +386,13 @@ public class AddAction extends DefaultAction implements IBufferAction,
     IRequest request = null;
     Object referant = getReferant();
 
-    if (referant instanceof IRequest)
+    if (referant instanceof IRequest) // meta support
       request = (IRequest) referant;
     else if (referant instanceof IChunk)
-      /*
-       * +buffer> chunk (or =chunk)
-       */
       request = new ChunkRequest((IChunk) referant, _slots);
-    else if (referant instanceof IChunkType) /*
-     * +buffer> isa chunk
-     */
-    request = new ChunkTypeRequest((IChunkType) referant, _slots);
+    else if (referant instanceof IChunkType)
+      request = new ChunkTypeRequest((IChunkType) referant, _slots);
     else
-      /*
-       * +buffer> slot value
-       */
       request = new SlotBasedRequest(_slots);
 
     return request;
@@ -403,30 +411,65 @@ public class AddAction extends DefaultAction implements IBufferAction,
     IActivationBuffer buffer = model.getActivationBuffer(getBufferName());
 
     IRequest request = createRequest();
-    IRequestableBuffer rb = buffer
-        .getAdapter(IRequestableBuffer.class);
+    IRequestableBuffer rb = buffer.getAdapter(IRequestableBuffer.class);
 
     if (rb != null)
     {
       if (rb.willAccept(request))
         rb.request(request, firingTime);
       else
-        throw new IllegalActionStateException(rb.getName()
-            + " rejected processing of request " + request);
+        throw new IllegalActionStateException(
+            rb.getName() + " rejected processing of request " + request);
     }
     else /*
-     * wasn't accepted directly.. we'll do so indirectly
-     */
+          * wasn't accepted directly.. we'll do so indirectly
+          */
     if (request instanceof ChunkRequest)
       _chunkDelegate.request(request, buffer, firingTime);
     else if (request instanceof ChunkTypeRequest)
       _chunkTypeDelegate.request(request, buffer, firingTime);
     else
-      throw new IllegalActionStateException(buffer.getName()
-          + " cannot accept slot only requests");
-
-
+      throw new IllegalActionStateException(
+          buffer.getName() + " cannot accept slot only requests");
 
     return 0;
   }
+
+  @Override
+  public int hashCode()
+  {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result
+        + (_bufferName == null ? 0 : _bufferName.hashCode());
+    result = prime * result + (_referant == null ? 0 : _referant.hashCode());
+    result = prime * result + (_slots == null ? 0 : _slots.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj)
+  {
+    if (this == obj) return true;
+    if (obj == null) return false;
+    if (getClass() != obj.getClass()) return false;
+    AddAction other = (AddAction) obj;
+    if (_bufferName == null)
+    {
+      if (other._bufferName != null) return false;
+    }
+    else if (!_bufferName.equals(other._bufferName)) return false;
+    if (_referant == null)
+    {
+      if (other._referant != null) return false;
+    }
+    else if (!_referant.equals(other._referant)) return false;
+    if (_slots == null)
+    {
+      if (other._slots != null) return false;
+    }
+    else if (!_slots.equals(other._slots)) return false;
+    return true;
+  }
+
 }

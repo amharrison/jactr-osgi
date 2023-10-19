@@ -4,16 +4,17 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 
-/*
- * default logging
- */
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.model.IModel;
 import org.jactr.core.production.IProduction;
 import org.jactr.core.production.ISymbolicProduction;
 import org.jactr.core.production.action.IAction;
 import org.jactr.core.production.condition.ICondition;
+
+/*
+ * default logging
+ */
+ 
+import org.slf4j.LoggerFactory;
 
 /**
  * fluent production builder.
@@ -25,8 +26,8 @@ public class FluentProduction
   /**
    * Logger definition
    */
-  static private final transient Log LOGGER = LogFactory
-      .getLog(FluentProduction.class);
+  static private final transient org.slf4j.Logger LOGGER = LoggerFactory
+      .getLogger(FluentProduction.class);
 
   private IModel                     _model;
 
@@ -104,7 +105,8 @@ public class FluentProduction
       _conditions.forEach(sp::addCondition);
       _actions.forEach(sp::addAction);
 
-      return _model.getProceduralModule().addProduction(_currentProduction)
+      return _currentProduction = _model.getProceduralModule()
+          .addProduction(_currentProduction)
           .get();
     }
     catch (InterruptedException | ExecutionException e)

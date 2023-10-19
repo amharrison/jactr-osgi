@@ -1,50 +1,34 @@
 package org.jactr.modules.pm.motor.command.translators;
 
-/*
- * default logging
- */
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.commonreality.agents.IAgent;
 import org.commonreality.efferent.ICompoundCommand;
 import org.commonreality.efferent.IEfferentCommand;
 import org.commonreality.modalities.motor.MotorUtilities;
 import org.commonreality.modalities.motor.TranslateCommand;
 import org.commonreality.object.IEfferentObject;
-import org.jactr.core.chunktype.IChunkType;
 import org.jactr.core.model.IModel;
 import org.jactr.core.production.request.ChunkTypeRequest;
 import org.jactr.core.runtime.ACTRRuntime;
 import org.jactr.modules.pm.motor.IMotorModule;
+
+/*
+ * default logging
+ */
+ 
+import org.slf4j.LoggerFactory;
 
 public class PeckRecoilTranslator extends PeckTranslator
 {
   /**
    * Logger definition
    */
-  static private final transient Log LOGGER = LogFactory
-                                                .getLog(PeckRecoilTranslator.class);
+  static private final transient org.slf4j.Logger LOGGER = LoggerFactory
+                                                .getLogger(PeckRecoilTranslator.class);
 
   @Override
   public boolean handles(ChunkTypeRequest request)
   {
-    try
-    {
-      IChunkType actual = request.getChunkType();
-      IChunkType punch = actual.getModel().getDeclarativeModule().getChunkType(
-          "peck-recoil").get();
-
-//      return actual.isA(punch);
-      return actual.equals(punch);
-    }
-    catch (Exception e)
-    {
-      /**
-       * Error :
-       */
-      LOGGER.error("Failed to get peck chunk type ", e);
-      return false;
-    }
+    return handles("peck-recoil", request);
   }
 
   @Override

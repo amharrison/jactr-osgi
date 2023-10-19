@@ -1,10 +1,5 @@
 package org.jactr.modules.pm.motor.command.translators;
 
-/*
- * default logging
- */
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.commonreality.agents.IAgent;
 import org.commonreality.efferent.ICompoundCommand;
 import org.commonreality.efferent.IEfferentCommand;
@@ -13,42 +8,29 @@ import org.commonreality.modalities.motor.TranslateCommand;
 import org.commonreality.object.IEfferentObject;
 import org.commonreality.sensors.keyboard.PressCommand;
 import org.commonreality.sensors.keyboard.ReleaseCommand;
-import org.jactr.core.chunktype.IChunkType;
 import org.jactr.core.model.IModel;
 import org.jactr.core.production.request.ChunkTypeRequest;
 import org.jactr.core.runtime.ACTRRuntime;
 import org.jactr.core.slot.ISlot;
 import org.jactr.modules.pm.motor.IMotorModule;
 
+/*
+ * default logging
+ */
+ 
+import org.slf4j.LoggerFactory;
+
 public class PeckTranslator extends AbstractManualTranslator
 {
   /**
    * Logger definition
    */
-  static final transient Log LOGGER = LogFactory.getLog(PeckTranslator.class);
+  static final transient org.slf4j.Logger LOGGER = LoggerFactory.getLogger(PeckTranslator.class);
 
   public boolean handles(ChunkTypeRequest request)
   {
-    try
-    {
-      IChunkType actual = request.getChunkType();
-      IChunkType punch = actual.getModel().getDeclarativeModule().getChunkType(
-          "peck").get();
-
-//      return actual.isA(punch);
-      return actual.equals(punch);
-    }
-    catch (Exception e)
-    {
-      /**
-       * Error :
-       */
-      LOGGER.error("Failed to get peck chunk type ", e);
-      return false;
-    }
+    return handles("peck", request);
   }
-
-
 
   protected double[] getTarget(ChunkTypeRequest request, IEfferentObject muscle)
   {
@@ -57,14 +39,14 @@ public class PeckTranslator extends AbstractManualTranslator
     double theta = Double.NaN;
 
     for (ISlot slot : request.getSlots())
-      if (slot.getName().equalsIgnoreCase("r"))
+      if (slot.getName().equalsIgnoreCase("distance"))
         distance = ((Number) slot.getValue()).doubleValue();
       else if (slot.getName().equalsIgnoreCase("theta"))
         theta = ((Number) slot.getValue()).doubleValue();
 
     if (Double.isNaN(distance) || Double.isNaN(theta))
       throw new IllegalArgumentException(
-          "Both theta and r must be defined when computing finger trajectories");
+          "Both theta and distance must be defined when computing finger trajectories");
 
     double dX = Math.cos(theta) * distance;
     double dY = Math.sin(theta) * distance;
@@ -75,14 +57,7 @@ public class PeckTranslator extends AbstractManualTranslator
     return target;
   }
   
-  protected double computeDistance(double[] origin, double[] target)
-  {
-    double rtn = 0;
-    for(int i=0;i<origin.length;i++)
-      rtn += Math.abs(origin[i]-target[i])*Math.abs(origin[i]-target[i]);
-    
-    return Math.sqrt(rtn);
-  }
+
 
 
   public IEfferentCommand translate(ChunkTypeRequest request,

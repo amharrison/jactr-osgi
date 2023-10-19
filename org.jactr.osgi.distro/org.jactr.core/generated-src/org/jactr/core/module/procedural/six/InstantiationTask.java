@@ -10,9 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.buffer.IActivationBuffer;
+import org.jactr.core.buffer.meta.IMetaBuffer;
 import org.jactr.core.chunk.IChunk;
 import org.jactr.core.logging.Logger;
 import org.jactr.core.model.IModel;
@@ -29,6 +28,7 @@ import org.jactr.core.production.condition.QueryCondition;
 import org.jactr.core.production.six.ISubsymbolicProduction6;
 import org.jactr.core.utils.collections.FastCollectionFactory;
 import org.jactr.core.utils.collections.FastListFactory;
+import org.slf4j.LoggerFactory;
 
 /**
  * delegate task to actually do the instantiation and evaluation of the
@@ -42,18 +42,18 @@ public class InstantiationTask implements Callable<Collection<IInstantiation>>
   /**
    * Logger definition
    */
-  static private final transient Log    LOGGER = LogFactory
-                                                   .getLog(InstantiationTask.class);
+  static private final transient org.slf4j.Logger LOGGER = LoggerFactory
+      .getLogger(InstantiationTask.class);
 
-  private final List<IProduction>       _productionsToInstantiate;
+  private final List<IProduction>                 _productionsToInstantiate;
 
-  private final IProductionInstantiator _instantiator;
+  private final IProductionInstantiator           _instantiator;
 
-  private final IRandomModule           _randomModule;
+  private final IRandomModule                     _randomModule;
 
-  private final IModel                  _model;
+  private final IModel                            _model;
 
-  private final double                  _expectedUtilityNoise;
+  private final double                            _expectedUtilityNoise;
 
   public InstantiationTask(Collection<IProduction> productions,
       IProductionInstantiator instantiator, IModel model, IRandomModule random,
@@ -75,13 +75,11 @@ public class InstantiationTask implements Callable<Collection<IInstantiation>>
                                                     // costly to repeat
 
     @SuppressWarnings("unchecked")
-    List<VariableBindings> provisionalBindings = FastListFactory
-        .newInstance();
+    List<VariableBindings> provisionalBindings = FastListFactory.newInstance();
 
     StringBuilder message = new StringBuilder();
-    if (debugEnabled)
-      LOGGER.debug(String.format("Attempting to instantiatie %s",
-          _productionsToInstantiate));
+    if (debugEnabled) LOGGER.debug(String
+        .format("Attempting to instantiatie %s", _productionsToInstantiate));
 
     for (IProduction production : _productionsToInstantiate)
       try
@@ -92,9 +90,8 @@ public class InstantiationTask implements Callable<Collection<IInstantiation>>
 
         if (debugEnabled) LOGGER.debug("Instantiating " + production);
 
-        Collection<IInstantiation> instantiations = _instantiator.instantiate(
-            production, provisionalBindings);
-
+        Collection<IInstantiation> instantiations = _instantiator
+            .instantiate(production, provisionalBindings);
 
         for (IInstantiation instantiation : instantiations)
         {
@@ -105,9 +102,8 @@ public class InstantiationTask implements Callable<Collection<IInstantiation>>
 
           if (Double.isNaN(utility)) utility = p.getUtility();
 
-          if (debugEnabled)
-            LOGGER.debug(production + " utility: " + utility + " noise:"
-                + noise + " expected utility: " + (utility + noise));
+          if (debugEnabled) LOGGER.debug(production + " utility: " + utility
+              + " noise:" + noise + " expected utility: " + (utility + noise));
 
           p.setExpectedUtility(utility + noise);
 
@@ -116,7 +112,8 @@ public class InstantiationTask implements Callable<Collection<IInstantiation>>
             message.delete(0, message.length());
             message.append("Instantiated ").append(production)
                 .append(" expected utility ");
-            message.append(utility + noise).append(" (").append(noise)
+            message.append(String.format("%.4f", utility + noise)).append(" (")
+                .append(String.format("%.4f", noise))
                 .append(" noise)");
 
             String msg = message.toString();
@@ -171,8 +168,7 @@ public class InstantiationTask implements Callable<Collection<IInstantiation>>
     initialBinding.bind("=model", _model);
     provisionalBindings.add(initialBinding);
 
-
-        /*
+    /*
      * reusbale map collection.
      */
     Map<IChunk, Collection<VariableBindings>> keyedProvisionalBindings = new HashMap<IChunk, Collection<VariableBindings>>();
@@ -188,8 +184,8 @@ public class InstantiationTask implements Callable<Collection<IInstantiation>>
       if (condition instanceof IBufferCondition
           && !(condition instanceof QueryCondition))
       {
-        IActivationBuffer buffer = _model
-            .getActivationBuffer(((IBufferCondition) condition).getBufferName());
+        IActivationBuffer buffer = _model.getActivationBuffer(
+            ((IBufferCondition) condition).getBufferName());
 
         sourceChunks.clear();
         buffer.getSourceChunks(sourceChunks);
@@ -197,7 +193,20 @@ public class InstantiationTask implements Callable<Collection<IInstantiation>>
         /*
          * nothing there? nothing to bind.
          */
-        if (sourceChunks.size() == 0) continue;
+        if (sourceChunks.size() == 0)
+        {
+          /*
+           * check to see if the buffer wants us to bind a non-chunk.
+           */
+          if (buffer instanceof IMetaBuffer)
+          {
+            Object contents = ((IMetaBuffer) buffer).getContents();
+            if (contents != null)
+              for (VariableBindings binding : provisionalBindings)
+              binding.bind("=" + buffer.getName(), contents, buffer);
+          }
+          continue;
+        }
 
         /*
          * if there are more than one source chunk, we need to duplicate all the

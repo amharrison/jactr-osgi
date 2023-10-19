@@ -6,15 +6,17 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.Future;
 
-/*
- * default logging
- */
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.chunk.IChunk;
+import org.jactr.core.chunk.ISymbolicChunk;
 import org.jactr.core.chunktype.IChunkType;
 import org.jactr.core.slot.BasicSlot;
 import org.jactr.core.slot.ISlot;
+
+/*
+ * default logging
+ */
+ 
+import org.slf4j.LoggerFactory;
 
 /**
  * fluent chunk builder. Entry point {@link #from(IChunkType)}, with terminal
@@ -28,8 +30,8 @@ public class FluentChunk
   /**
    * Logger definition
    */
-  static private final transient Log LOGGER = LogFactory
-      .getLog(FluentChunk.class);
+  static private final transient org.slf4j.Logger LOGGER = LoggerFactory
+      .getLogger(FluentChunk.class);
 
   private IChunk                     _source;
 
@@ -146,9 +148,18 @@ public class FluentChunk
           .createChunk(_parent, _name).get();
 
       final IChunk fChunk = chunk;
-      _slots.forEach(s -> {
-        fChunk.getSymbolicChunk().addSlot(s);
-      });
+      try
+      {
+        fChunk.getWriteLock().lock();
+        final ISymbolicChunk fsc = fChunk.getSymbolicChunk();
+        _slots.forEach(s -> {
+          fsc.addSlot(s);
+        });
+      }
+      finally
+      {
+        fChunk.getWriteLock().unlock();
+      }
 
       _name = null;
       // leave the slots in case we want multiple copies with the same values

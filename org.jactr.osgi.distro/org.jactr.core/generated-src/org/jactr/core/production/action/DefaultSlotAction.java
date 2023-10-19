@@ -5,13 +5,12 @@ package org.jactr.core.production.action;
  */
 import java.util.Collection;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.production.CannotInstantiateException;
 import org.jactr.core.production.VariableBindings;
 import org.jactr.core.slot.ISlot;
 import org.jactr.core.slot.IUniqueSlotContainer;
 import org.jactr.core.slot.UniqueSlotContainer;
+import org.slf4j.LoggerFactory;
 
 public abstract class DefaultSlotAction extends DefaultAction implements
     IUniqueSlotContainer
@@ -19,8 +18,8 @@ public abstract class DefaultSlotAction extends DefaultAction implements
   /**
    * Logger definition
    */
-  static private final transient Log LOGGER = LogFactory
-                                                .getLog(DefaultSlotAction.class);
+  static private final transient org.slf4j.Logger LOGGER = LoggerFactory
+                                                .getLogger(DefaultSlotAction.class);
 
   private UniqueSlotContainer        _slotContainer;
 
@@ -97,4 +96,30 @@ public abstract class DefaultSlotAction extends DefaultAction implements
             "The slot %s is required for this action", slotName));
     }
   }
+
+  @Override
+  public int hashCode()
+  {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result
+        + (_slotContainer == null ? 0 : _slotContainer.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj)
+  {
+    if (this == obj) return true;
+    if (obj == null) return false;
+    if (getClass() != obj.getClass()) return false;
+    DefaultSlotAction other = (DefaultSlotAction) obj;
+    if (_slotContainer == null)
+    {
+      if (other._slotContainer != null) return false;
+    }
+    else if (!_slotContainer.equals(other._slotContainer)) return false;
+    return true;
+  }
+
 }

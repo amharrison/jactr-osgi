@@ -1,5 +1,6 @@
 package org.jactr.modules.pm.common.memory.filter;
 
+import java.util.Collection;
 /*
  * default logging
  */
@@ -38,10 +39,12 @@ public interface IIndexFilter
    * @param request
    * @return
    */
-  public IIndexFilter instantiate(ChunkTypeRequest request);
+  public Collection<IIndexFilter> instantiate(ChunkTypeRequest request);
   
   public int getWeight();
   
   public boolean accept(ChunkTypeRequest template);
   public Comparator<ChunkTypeRequest> getComparator();
+
+  public void dispose();
 }

@@ -1,10 +1,5 @@
 package org.jactr.modules.pm.visual.memory.impl.encoder;
 
-/*
- * default logging
- */
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.commonreality.identifier.IIdentifier;
 import org.commonreality.modalities.visual.Color;
 import org.commonreality.modalities.visual.DefaultVisualPropertyHandler;
@@ -27,6 +22,12 @@ import org.jactr.modules.pm.visual.memory.IVisualMemory;
 import org.jactr.modules.pm.visual.memory.VisualUtilities;
 import org.jactr.modules.pm.visual.memory.impl.DefaultVisualMemory;
 
+/*
+ * default logging
+ */
+
+import org.slf4j.LoggerFactory;
+
 /**
  * abstract base implementation of a visual chunk encoder. Extenders must
  * implement {@link #canEncodeVisualObjectType(IAfferentObject)} which tests to
@@ -45,14 +46,14 @@ public abstract class AbstractVisualEncoder implements IPerceptualEncoder
   /**
    * Logger definition
    */
-  static private final transient Log          LOGGER   = LogFactory
-                                                           .getLog(AbstractVisualEncoder.class);
+  static private final transient org.slf4j.Logger LOGGER   = LoggerFactory
+      .getLogger(AbstractVisualEncoder.class);
 
-  static private DefaultVisualPropertyHandler _handler = new DefaultVisualPropertyHandler();
+  static private DefaultVisualPropertyHandler     _handler = new DefaultVisualPropertyHandler();
 
-  private final String                        _chunkTypeName;
+  private final String                            _chunkTypeName;
 
-  private IChunkType                          _chunkType;
+  private IChunkType                              _chunkType;
 
   /**
    * @param chunkTypeName
@@ -61,6 +62,11 @@ public abstract class AbstractVisualEncoder implements IPerceptualEncoder
   public AbstractVisualEncoder(String chunkTypeName)
   {
     _chunkTypeName = chunkTypeName;
+  }
+
+  public String getChunkTypeName()
+  {
+    return _chunkTypeName;
   }
 
   /**
@@ -82,15 +88,14 @@ public abstract class AbstractVisualEncoder implements IPerceptualEncoder
       if (!isVisible) return null;
 
       Point2D location = getHandler().getRetinalLocation(afferentObject);
-      IChunk visualLocation = visualMemory.getVisualLocationChunkAt(
-          location.getX(), location.getY());
+      IChunk visualLocation = visualMemory
+          .getVisualLocationChunkAt(location.getX(), location.getY());
       return visualLocation;
     }
     catch (UnknownPropertyNameException e)
     {
-      if (LOGGER.isDebugEnabled())
-        LOGGER.debug("No retinal location defined for "
-            + afferentObject.getIdentifier());
+      if (LOGGER.isDebugEnabled()) LOGGER.debug(
+          "No retinal location defined for " + afferentObject.getIdentifier());
       return null;
     }
   }
@@ -108,9 +113,9 @@ public abstract class AbstractVisualEncoder implements IPerceptualEncoder
     Object loc = visualChunk.getSymbolicChunk()
         .getSlot(IVisualModule.SCREEN_POSITION_SLOT).getValue();
 
-    if (loc != null && loc instanceof IChunk)
-      if (((IChunk) loc).isA(visualMemory.getVisualModule()
-          .getVisualLocationChunkType())) return (IChunk) loc;
+    if (loc != null && loc instanceof IChunk) if (((IChunk) loc)
+        .isA(visualMemory.getVisualModule().getVisualLocationChunkType()))
+      return (IChunk) loc;
 
     return null;
   }
@@ -186,7 +191,8 @@ public abstract class AbstractVisualEncoder implements IPerceptualEncoder
      */
     if (oldLoc == null || newLoc == null) return false;
 
-    if (isAttendedSticky(afferentObject.getIdentifier(), oldChunk, visualMemory))
+    if (isAttendedSticky(afferentObject.getIdentifier(), oldChunk,
+        visualMemory))
       return false;
 
     return exceedsMovementTolerance(oldLoc, newLoc, visualMemory);
@@ -203,11 +209,11 @@ public abstract class AbstractVisualEncoder implements IPerceptualEncoder
   protected boolean isAttendedSticky(IIdentifier perceptId, IChunk encoding,
       IVisualMemory visualMemory)
   {
-    if (VisualUtilities.isCurrentlySticky(perceptId, visualMemory))
-      return true;
+    if (VisualUtilities.isCurrentlySticky(perceptId, visualMemory)) return true;
 
-    if (VisualUtilities.isCurrentlySticky(encoding, visualMemory, visualMemory
-        .getVisualModule().getVisualActivationBuffer())) return true;
+    if (VisualUtilities.isCurrentlySticky(encoding, visualMemory,
+        visualMemory.getVisualModule().getVisualActivationBuffer()))
+      return true;
 
     return false;
   }
@@ -293,12 +299,13 @@ public abstract class AbstractVisualEncoder implements IPerceptualEncoder
           .setValue(visualLocation);
 
       Dimension2D size = getHandler().getRetinalSize(afferentObject);
-      ((IMutableSlot) sc.getSlot(IVisualModule.HEIGHT_SLOT)).setValue(size
-          .getHeight());
-      ((IMutableSlot) sc.getSlot(IVisualModule.WIDTH_SLOT)).setValue(size
-          .getWidth());
+      ((IMutableSlot) sc.getSlot(IVisualModule.HEIGHT_SLOT))
+          .setValue(size.getHeight());
+      ((IMutableSlot) sc.getSlot(IVisualModule.WIDTH_SLOT))
+          .setValue(size.getWidth());
 
-      IChunk color = getColor(getHandler().getColors(afferentObject)[0], memory);
+      IChunk color = getColor(getHandler().getColors(afferentObject)[0],
+          memory);
       ((IMutableSlot) sc.getSlot(IVisualModule.COLOR_SLOT)).setValue(color);
 
       IVisualModule vModule = memory.getVisualModule();
@@ -315,13 +322,12 @@ public abstract class AbstractVisualEncoder implements IPerceptualEncoder
             .setValue(boundSymbol);
       }
 
-      ((IMutableSlot) sc.getSlot(IVisualModule.TYPE_SLOT)).setValue(sc
-          .getChunkType());
+      ((IMutableSlot) sc.getSlot(IVisualModule.TYPE_SLOT))
+          .setValue(sc.getChunkType());
 
       IModel model = memory.getModule().getModel();
-      if (Logger.hasLoggers(model))
-        Logger.log(model, Logger.Stream.VISUAL, "Updated precoding of "
-            + encoding);
+      if (Logger.hasLoggers(model)) Logger.log(model, Logger.Stream.VISUAL,
+          "Updated precoding of " + encoding);
 
     }
     catch (Exception e)
@@ -335,10 +341,10 @@ public abstract class AbstractVisualEncoder implements IPerceptualEncoder
   protected String guessChunkName(IAfferentObject afferentObject)
   {
     String candidateName = afferentObject.getIdentifier().getName();
-    if (candidateName == null || candidateName.length() == 0)
-      candidateName = _chunkTypeName;
-    candidateName += "-"
-        + _chunkType.getSymbolicChunkType().getNumberOfChunks();
+    if (candidateName == null || candidateName.length() < 2
+        || !Character.isAlphabetic(candidateName.charAt(0)))
+      candidateName = _chunkTypeName + "-" + candidateName;
+    candidateName += _chunkType.getSymbolicChunkType().getNumberOfChunks();
     return candidateName;
   }
 
@@ -400,20 +406,22 @@ public abstract class AbstractVisualEncoder implements IPerceptualEncoder
    */
   final private IChunkType getVisualObjectChunkType(IVisualMemory visualMemory)
   {
-    if (_chunkType == null)
-      try
-      {
-        _chunkType = visualMemory.getModule().getModel().getDeclarativeModule()
-            .getChunkType(_chunkTypeName).get();
+    if (_chunkType == null) try
+    {
+      _chunkType = visualMemory.getModule().getModel().getDeclarativeModule()
+          .getChunkType(_chunkTypeName).get();
 
-        if (_chunkType == null) throw new NullPointerException();
-      }
-      catch (Exception e)
-      {
-        throw new IllegalStateException(
-            "Failed to retrieve reference to chunktype " + _chunkTypeName
-                + ". Has it been installed?", e);
-      }
+      if (_chunkType == null) throw new NullPointerException();
+    }
+    catch (Exception e)
+    {
+      IllegalStateException ise = new IllegalStateException(
+          "Failed to retrieve reference to chunktype " + _chunkTypeName
+              + ". Has it been installed?",
+          e);
+      LOGGER.error("Failed to get chunktype.", ise);
+      throw ise;
+    }
     return _chunkType;
   }
 

@@ -6,13 +6,15 @@ Bundle-Version: 2.5.1.qualifier
 Require-Bundle: org.apache.commons.logging,
  org.commonreality.api;bundle-version="1.5.1",
  org.commonreality.time;bundle-version="1.5.1",
- org.eclipse.collections;bundle-version="9.2.0",
- org.apache.commons.collections;bundle-version="3.2.2",
  org.commonreality.core;bundle-version="1.5.1",
  org.commonreality.modalities;bundle-version="1.5.1",
  org.commonreality.net;bundle-version="1.5.1",
- org.commonreality.sensors;bundle-version="1.5.1"
-Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+ org.commonreality.sensors;bundle-version="1.5.1",
+ org.apache.commons.math3;bundle-version="3.6.1",
+ org.apache.commons.collections;bundle-version="3.2.2",
+ org.eclipse.collections,
+ org.slf4j.api
+Bundle-RequiredExecutionEnvironment: JavaSE-21
 Automatic-Module-Name: org.commonreality.osgi
 Eclipse-BuddyPolicy: registered
 Eclipse-RegisterBuddy: org.apache.log4j

@@ -1,6 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Launching Plug-in
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-SymbolicName: org.jactr.launching;singleton:=true
 Bundle-Version: 2.5.1.qualifier
 Bundle-Activator: org.jactr.launching.Activator
@@ -17,7 +18,8 @@ Require-Bundle: org.eclipse.core.runtime,
  org.commonreality.core;bundle-version="1.5.1",
  org.jactr.core;bundle-version="2.5.1",
  org.jactr.io;bundle-version="2.5.1",
- org.jactr.tools;bundle-version="2.5.1"
+ org.jactr.tools;bundle-version="2.5.1",
+ org.jactr.osgi;bundle-version="2.5.1"
 Eclipse-BuddyPolicy: registered  
 Eclipse-RegisterBuddy: org.apache.log4j
 Bundle-ActivationPolicy: lazy

@@ -17,9 +17,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.chunk.IChunk;
+import org.jactr.core.chunk.five.ISubsymbolicChunk5;
 import org.jactr.core.chunk.four.ISubsymbolicChunk4;
 import org.jactr.core.module.declarative.IDeclarativeModule;
 import org.jactr.core.module.declarative.basic.DefaultDeclarativeModule;
@@ -34,10 +33,14 @@ import org.jactr.core.module.declarative.four.IRandomActivationEquation;
 import org.jactr.core.module.declarative.four.ISpreadingActivationEquation;
 import org.jactr.core.module.declarative.four.learning.IDeclarativeLearningModule4;
 import org.jactr.core.module.random.IRandomModule;
+import org.jactr.core.utils.parameter.CollectionParameterHandler;
 import org.jactr.core.utils.parameter.IParameterized;
 import org.jactr.core.utils.parameter.ParameterHandler;
 import org.jactr.core.utils.references.IOptimizedReferences;
 import org.jactr.core.utils.references.IReferences;
+import org.jactr.core.utils.similarity.DefaultSimilarityHandler;
+import org.jactr.core.utils.similarity.ISimilarityHandler;
+import org.slf4j.LoggerFactory;
 
 /**
  * Default declarative module for ACT-R 6. <br/>
@@ -45,8 +48,8 @@ import org.jactr.core.utils.references.IReferences;
  * various equations ({@link IBaseLevelActivationEquation},
  * {@link ISpreadingActivationEquation}, {@link IRandomActivationEquation}).
  * Clients extending this should be sure to delegate to the original
- * configurator as to keep this functionality ( {@link #getConfigurator()}). <h3>
- * Parameters</h3>
+ * configurator as to keep this functionality ( {@link #getConfigurator()}).
+ * <h3>Parameters</h3>
  * <ul>
  * <li><b>EnablePartialMatching</b> : Turn on partial matching in searches
  * (values:true/false. default: false)
@@ -75,34 +78,37 @@ public class DefaultDeclarativeModule6 extends DefaultDeclarativeModule
   /**
    * logger definition
    */
-  static final Log                     LOGGER                  = LogFactory
-                                                                   .getLog(DefaultDeclarativeModule6.class);
+  static final transient org.slf4j.Logger LOGGER                  = LoggerFactory
+      .getLogger(DefaultDeclarativeModule6.class);
 
-  static private boolean               _subsymbolicWarning     = false;
+  static private boolean                  _subsymbolicWarning     = false;
 
-  protected double                     _activationNoise;
+  protected double                        _activationNoise;
 
-  protected double                     _permanentActivationNoise;
+  protected double                        _permanentActivationNoise;
 
-  protected boolean                    _partialMatchingEnabled = false;
+  protected boolean                       _partialMatchingEnabled = false;
 
-  protected double                     _mismatchPenalty;
+  protected double                        _mismatchPenalty;
 
-  protected double                     _baseLevelConstant;
+  protected double                        _baseLevelConstant;
 
-  protected double                     _maximumSimilarity;
+  protected double                        _maximumSimilarity;
 
-  protected double                     _maximumDifference;
+  protected double                        _maximumDifference;
 
-  protected Map<Pair, Double>          _similarities;
+  protected Map<Pair, Double>             _similarities;
 
-  private IRandomActivationEquation    _randomActivationEquation;
+  private IRandomActivationEquation       _randomActivationEquation;
 
-  private IBaseLevelActivationEquation _baseLevelActivationEquation;
+  private IBaseLevelActivationEquation    _baseLevelActivationEquation;
 
-  private ISpreadingActivationEquation _spreadingActivationEquation;
+  private ISpreadingActivationEquation    _spreadingActivationEquation;
 
-  private int                          _optimizationLevel      = 0;
+  private int                             _optimizationLevel      = 10;
+
+  private DefaultSimilarityHandler        _similarityHandler      = new DefaultSimilarityHandler(
+      this);
 
   public DefaultDeclarativeModule6()
   {
@@ -140,8 +146,8 @@ public class DefaultDeclarativeModule6 extends DefaultDeclarativeModule
 
     if (_randomActivationEquation == null)
     {
-      IRandomModule random = (IRandomModule) getModel().getModule(
-          IRandomModule.class);
+      IRandomModule random = (IRandomModule) getModel()
+          .getModule(IRandomModule.class);
       _randomActivationEquation = new DefaultRandomActivationEquation(random,
           DefaultDeclarativeModule6.this);
     }
@@ -149,8 +155,8 @@ public class DefaultDeclarativeModule6 extends DefaultDeclarativeModule
     /*
      * set the equations to be used
      */
-    ISubsymbolicChunk4 ssc = (ISubsymbolicChunk4) newChunk
-        .getSubsymbolicChunk().getAdapter(ISubsymbolicChunk4.class);
+    ISubsymbolicChunk4 ssc = newChunk.getSubsymbolicChunk()
+        .getAdapter(ISubsymbolicChunk4.class);
 
     if (ssc != null)
     {
@@ -165,14 +171,11 @@ public class DefaultDeclarativeModule6 extends DefaultDeclarativeModule
     }
     else if (LOGGER.isWarnEnabled() && !_subsymbolicWarning)
     {
-      LOGGER
-          .warn(String
-              .format(
-                  "%s is designed for chunks with subsymbolics derived from ISubsymbolicChunk4",
-                  getClass().getSimpleName()));
+      LOGGER.warn(String.format(
+          "%s is designed for chunks with subsymbolics derived from ISubsymbolicChunk4",
+          getClass().getSimpleName()));
       _subsymbolicWarning = true;
     }
-
 
     super.configure(newChunk);
   }
@@ -232,9 +235,8 @@ public class DefaultDeclarativeModule6 extends DefaultDeclarativeModule
     double old = _permanentActivationNoise;
     _permanentActivationNoise = noise;
 
-    if (hasListeners())
-      dispatch(new DeclarativeModuleEvent(this, PERMANENT_ACTIVATION_NOISE,
-          old, noise));
+    if (hasListeners()) dispatch(new DeclarativeModuleEvent(this,
+        PERMANENT_ACTIVATION_NOISE, old, noise));
   }
 
   public double getMismatchPenalty()
@@ -247,8 +249,8 @@ public class DefaultDeclarativeModule6 extends DefaultDeclarativeModule
     double old = _mismatchPenalty;
     _mismatchPenalty = mismatch;
 
-    if (hasListeners())
-      dispatch(new DeclarativeModuleEvent(this, MISMATCH_PENALTY, old, mismatch));
+    if (hasListeners()) dispatch(
+        new DeclarativeModuleEvent(this, MISMATCH_PENALTY, old, mismatch));
   }
 
   public double getMaximumDifference()
@@ -266,13 +268,11 @@ public class DefaultDeclarativeModule6 extends DefaultDeclarativeModule
     double old = _maximumDifference;
     _maximumDifference = maxDiff;
 
-    if (_maximumDifference > 0)
-      if (LOGGER.isWarnEnabled())
-        LOGGER.warn(String.format("MaximumDifference should be <= 0"));
+    if (_maximumDifference > 0) if (LOGGER.isWarnEnabled())
+      LOGGER.warn(String.format("MaximumDifference should be <= 0"));
 
-    if (hasListeners())
-      dispatch(new DeclarativeModuleEvent(this, MAXIMUM_DIFFERENCE, old,
-          maxDiff));
+    if (hasListeners()) dispatch(
+        new DeclarativeModuleEvent(this, MAXIMUM_DIFFERENCE, old, maxDiff));
   }
 
   public void setMaximumSimilarity(double maxSim)
@@ -280,12 +280,11 @@ public class DefaultDeclarativeModule6 extends DefaultDeclarativeModule
     double old = _maximumSimilarity;
     _maximumSimilarity = maxSim;
 
-    if (_maximumSimilarity < 0)
-      if (LOGGER.isWarnEnabled())
-        LOGGER.warn(String.format("MaximumSimilarity should be >=0"));
+    if (_maximumSimilarity < 0) if (LOGGER.isWarnEnabled())
+      LOGGER.warn(String.format("MaximumSimilarity should be >=0"));
 
-    if (hasListeners())
-      dispatch(new DeclarativeModuleEvent(this, MAXIMUM_SIMILARITY, old, maxSim));
+    if (hasListeners()) dispatch(
+        new DeclarativeModuleEvent(this, MAXIMUM_SIMILARITY, old, maxSim));
   }
 
   public double getBaseLevelConstant()
@@ -298,22 +297,38 @@ public class DefaultDeclarativeModule6 extends DefaultDeclarativeModule
     double old = _baseLevelConstant;
     _baseLevelConstant = base;
 
-    if (hasListeners())
-      dispatch(new DeclarativeModuleEvent(this, BASE_LEVEL_CONSTANT, old,
-          _baseLevelConstant));
+    if (hasListeners()) dispatch(new DeclarativeModuleEvent(this,
+        BASE_LEVEL_CONSTANT, old, _baseLevelConstant));
   }
 
   public double getSimilarity(Object one, Object two)
   {
     Pair tmp = new Pair(one, two);
     if (_similarities.containsKey(tmp)) return _similarities.get(tmp);
+    if (one instanceof IChunk && two instanceof IChunk)
+    {
+      double value = ((IChunk) one).getAdapter(ISubsymbolicChunk5.class)
+          .getSimilarity((IChunk) two);
+      if (!Double.isNaN(value)) return value;
+    }
 
-    return _maximumDifference;
+    return _similarityHandler.getSimilarity(one, two, _maximumDifference,
+        _maximumSimilarity);
   }
 
   public void setSimilarity(Object one, Object two, double sim)
   {
     _similarities.put(new Pair(one, two), sim);
+  }
+
+  public void addSimilarityHandler(ISimilarityHandler handler)
+  {
+    if (handler != null) _similarityHandler.addHandler(handler);
+  }
+
+  public Collection<ISimilarityHandler> getSimilarityHandlers()
+  {
+    return _similarityHandler.getHandlers();
   }
 
   /**
@@ -336,6 +351,9 @@ public class DefaultDeclarativeModule6 extends DefaultDeclarativeModule
       return "" + getMaximumDifference();
     if (MAXIMUM_SIMILARITY.equalsIgnoreCase(key))
       return "" + getMaximumSimilarity();
+    if (SIMILARITY_HANDLERS.equalsIgnoreCase(key))
+      return new CollectionParameterHandler(ParameterHandler.classInstance())
+          .toString(getSimilarityHandlers());
     return super.getParameter(key);
   }
 
@@ -353,6 +371,7 @@ public class DefaultDeclarativeModule6 extends DefaultDeclarativeModule
     rtn.add(MISMATCH_PENALTY);
     rtn.add(MAXIMUM_DIFFERENCE);
     rtn.add(MAXIMUM_SIMILARITY);
+    rtn.add(SIMILARITY_HANDLERS);
     return rtn;
   }
 
@@ -364,26 +383,42 @@ public class DefaultDeclarativeModule6 extends DefaultDeclarativeModule
   public void setParameter(String key, String value)
   {
     if (PARTIAL_MATCHING.equalsIgnoreCase(key))
-      setPartialMatchingEnabled(ParameterHandler.booleanInstance()
-          .coerce(value));
+      setPartialMatchingEnabled(
+          ParameterHandler.booleanInstance().coerce(value));
     else if (BASE_LEVEL_CONSTANT.equalsIgnoreCase(key))
-      setBaseLevelConstant(ParameterHandler.numberInstance().coerce(value)
-          .doubleValue());
+      setBaseLevelConstant(
+          ParameterHandler.numberInstance().coerce(value).doubleValue());
     else if (ACTIVATION_NOISE.equalsIgnoreCase(key))
-      setActivationNoise(ParameterHandler.numberInstance().coerce(value)
-          .doubleValue());
+      setActivationNoise(
+          ParameterHandler.numberInstance().coerce(value).doubleValue());
     else if (PERMANENT_ACTIVATION_NOISE.equalsIgnoreCase(key))
-      setPermanentActivationNoise(ParameterHandler.numberInstance()
-          .coerce(value).doubleValue());
+      setPermanentActivationNoise(
+          ParameterHandler.numberInstance().coerce(value).doubleValue());
     else if (MISMATCH_PENALTY.equalsIgnoreCase(key))
-      setMismatchPenalty(ParameterHandler.numberInstance().coerce(value)
-          .doubleValue());
+      setMismatchPenalty(
+          ParameterHandler.numberInstance().coerce(value).doubleValue());
     else if (MAXIMUM_DIFFERENCE.equalsIgnoreCase(key))
-      setMaximumDifference(ParameterHandler.numberInstance().coerce(value)
-          .doubleValue());
+      setMaximumDifference(
+          ParameterHandler.numberInstance().coerce(value).doubleValue());
     else if (MAXIMUM_SIMILARITY.equalsIgnoreCase(key))
-      setMaximumSimilarity(ParameterHandler.numberInstance().coerce(value)
-          .doubleValue());
+      setMaximumSimilarity(
+          ParameterHandler.numberInstance().coerce(value).doubleValue());
+    else if (SIMILARITY_HANDLERS.equalsIgnoreCase(key))
+    {
+      @SuppressWarnings({ "unchecked", "unused", "rawtypes" })
+      Collection<Class<? extends ISimilarityHandler>> handlers = new CollectionParameterHandler(
+          ParameterHandler.classInstance()).coerce(value);
+      handlers.stream().map(c -> {
+        try
+        {
+          return (ISimilarityHandler) c.getConstructor().newInstance();
+        }
+        catch (Exception e)
+        {
+          return null;
+        }
+      }).forEach(this::addSimilarityHandler);
+    }
     else
       super.setParameter(key, value);
   }

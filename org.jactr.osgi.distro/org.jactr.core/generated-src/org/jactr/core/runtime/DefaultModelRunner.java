@@ -20,8 +20,6 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.commonreality.time.IAuthoritativeClock;
 import org.commonreality.time.IClock;
 import org.commonreality.time.impl.BasicClock;
@@ -35,6 +33,7 @@ import org.jactr.core.model.event.ModelEvent;
 import org.jactr.core.queue.TimedEventQueue;
 import org.jactr.core.runtime.event.ACTRRuntimeEvent;
 import org.jactr.core.utils.Diagnostics;
+import org.slf4j.LoggerFactory;
 
 /**
  * basic model runner, handles all events except disconnected which will be
@@ -47,21 +46,24 @@ public class DefaultModelRunner implements Runnable
   /**
    * logger definition
    */
-  static private final Log  LOGGER = LogFactory
-                                       .getLog(DefaultModelRunner.class);
+  static private final transient org.slf4j.Logger LOGGER                 = LoggerFactory
+      .getLogger(DefaultModelRunner.class);
 
-  static boolean            _enableTimeDiagnostics = Boolean
-                                                       .getBoolean("jactr.enableTimeDiagnostics");
+  static boolean                                  _enableTimeDiagnostics = Boolean
+      .getBoolean("jactr.enableTimeDiagnostics");
 
-  protected ExecutorService _service;
+  static boolean                                  _strictTiming          = Boolean
+      .getBoolean("jactr.strictTiming");
 
-  protected BasicModel      _model;
+  protected ExecutorService                       _service;
 
-  protected ICycleProcessor _cycleRunner;
+  protected BasicModel                            _model;
 
-  private NumberFormat      _format;
+  protected ICycleProcessor                       _cycleRunner;
 
-  private boolean           _firstRun              = true;
+  private NumberFormat                            _format;
+
+  private boolean                                 _firstRun              = true;
 
   public DefaultModelRunner(ExecutorService service, IModel model,
       ICycleProcessor cycleRunner)
@@ -110,9 +112,8 @@ public class DefaultModelRunner implements Runnable
 
     _cycleRunner.initialize(_model);
 
-    if (runtime.hasListeners())
-      runtime.dispatch(new ACTRRuntimeEvent(_model,
-          ACTRRuntimeEvent.Type.MODEL_STARTED, null));
+    if (runtime.hasListeners()) runtime.dispatch(new ACTRRuntimeEvent(_model,
+        ACTRRuntimeEvent.Type.MODEL_STARTED, null));
   }
 
   protected void shutDown(Exception deferred)
@@ -136,8 +137,8 @@ public class DefaultModelRunner implements Runnable
     }
     finally
     {
-      _model.dispatch(new ModelEvent(_model, ModelEvent.Type.DISCONNECTED,
-          deferred));
+      _model.dispatch(
+          new ModelEvent(_model, ModelEvent.Type.DISCONNECTED, deferred));
     }
   }
 
@@ -185,23 +186,21 @@ public class DefaultModelRunner implements Runnable
   {
     if (Double.isNaN(waitForTime))
     {
-      LOGGER
-          .error("Requested NaN? This should not happen unless we have no time control.");
+      LOGGER.error(
+          "Requested NaN? This should not happen unless we have no time control.");
       return 0;
     }
 
     IClock clock = ACTRRuntime.getRuntime().getClock(_model);
     double now = clock.getTime();
-    if (waitForTime <= now && !_firstRun)
+    if (waitForTime < now && !_firstRun)
     {
-      LOGGER
-          .warn(String
-              .format(
-                  "WARNING: Time discrepancy detected. Clock regression requested"
-                      + ": %.10f(desired) < %.10f(current). Should be >=. Incrementing request by 0.05",
-                  waitForTime, now));
+      if (_strictTiming) LOGGER.warn(String.format(
+          "WARNING: Time discrepancy detected. Clock regression requested"
+              + ": %.10f(desired) < %.10f(current). Should be >=. Using current time.",
+          waitForTime, now));
 
-      waitForTime = now + 0.05;
+      waitForTime = now;
 
       if (_enableTimeDiagnostics) Diagnostics.timeSanityCheck(waitForTime);
     }
@@ -224,15 +223,12 @@ public class DefaultModelRunner implements Runnable
     // double rtn = ACTRRuntime.getRuntime().getClock(_model)
     // .waitForTime(waitForTime).get();
 
-    if (rtn < waitForTime)
-    {
-      LOGGER
-          .error(String
-              .format(
-                  "WARNING: Time discrepancy detected. Clock regression : %.10f(returned) < %.10f(desired). Should be >=",
-                  rtn, waitForTime));
-      rtn = Math.nextAfter(rtn, 1);
-    }
+//    double delta = BasicClock.constrainPrecision(rtn - waitForTime);
+//    if (delta <= BasicClock.getPrecision() && delta > 0) LOGGER
+//        .warn(String
+//            .format(
+//                "WARNING: Time discrepancy detected. Clock regression : %.10f(returned) < %.10f(desired). Should be >=",
+//                rtn, waitForTime));
 
     return rtn;
   }
@@ -313,12 +309,9 @@ public class DefaultModelRunner implements Runnable
 
         if (nextTime <= priorTime)
         {
-          if (LOGGER.isWarnEnabled())
-            LOGGER
-                .warn(String
-                    .format(
-                        "WARNING: Time discrepancy detected. Cycle time error : %.6f(next) <= %.6f(prior). Should be >. Incrementing",
-                        nextTime, priorTime));
+          if (LOGGER.isWarnEnabled()) LOGGER.warn(String.format(
+              "WARNING: Time discrepancy detected. Cycle time error : %.6f(next) <= %.6f(prior). Should be >. Incrementing",
+              nextTime, priorTime));
 
           if (_enableTimeDiagnostics) Diagnostics.timeSanityCheck(nextTime);
 
@@ -355,6 +348,7 @@ public class DefaultModelRunner implements Runnable
     catch (Exception e)
     {
       LOGGER.error("Unknown exception, terminating ", e);
+      e.printStackTrace(System.err);
     }
     finally
     {

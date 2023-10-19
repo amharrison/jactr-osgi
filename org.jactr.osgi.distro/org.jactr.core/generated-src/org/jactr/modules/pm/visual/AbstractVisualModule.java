@@ -14,18 +14,24 @@
 package org.jactr.modules.pm.visual;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.Executor;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.commonreality.agents.IAgent;
 import org.commonreality.identifier.IIdentifier;
+import org.commonreality.modalities.visual.geom.Point2D;
+import org.commonreality.net.message.notification.NotificationMessage;
+import org.commonreality.notification.impl.SimpleMapNotification;
+import org.commonreality.object.IAfferentObject;
 import org.jactr.core.buffer.IActivationBuffer;
 import org.jactr.core.chunk.IChunk;
+import org.jactr.core.chunk.ISymbolicChunk;
 import org.jactr.core.chunktype.IChunkType;
 import org.jactr.core.concurrent.ExecutorServices;
 import org.jactr.core.event.ACTREventDispatcher;
@@ -34,6 +40,7 @@ import org.jactr.core.model.event.IModelListener;
 import org.jactr.core.model.event.ModelEvent;
 import org.jactr.core.model.event.ModelListenerAdaptor;
 import org.jactr.core.runtime.ACTRRuntime;
+import org.jactr.core.slot.IMutableSlot;
 import org.jactr.core.utils.parameter.IParameterized;
 import org.jactr.core.utils.parameter.ParameterHandler;
 import org.jactr.modules.pm.AbstractPerceptualModule;
@@ -47,8 +54,11 @@ import org.jactr.modules.pm.visual.buffer.IVisualLocationBuffer;
 import org.jactr.modules.pm.visual.event.IVisualModuleListener;
 import org.jactr.modules.pm.visual.event.VisualModuleEvent;
 import org.jactr.modules.pm.visual.memory.IVisualMemory;
+import org.jactr.modules.pm.visual.memory.impl.encoder.AbstractVisualEncoder;
+import org.jactr.modules.pm.visual.memory.impl.map.AbstractVisualFeatureMap;
 import org.jactr.modules.pm.visual.six.DefaultEncodingTimeEquation;
 import org.jactr.modules.pm.visual.six.DefaultSearchTimeEquation;
+import org.slf4j.LoggerFactory;
 
 /**
  * abstract impl that address most of the trivial details. Clients must provide
@@ -65,16 +75,16 @@ public abstract class AbstractVisualModule extends AbstractPerceptualModule
    * Logger definition
    */
 
-  static private final transient Log                                LOGGER                        = LogFactory
-                                                                                                      .getLog(AbstractVisualModule.class);
+  static private final transient org.slf4j.Logger LOGGER                        = LoggerFactory
+      .getLogger(AbstractVisualModule.class);
 
-  static final public String                                        ENCODING_TIME_EQUATION_PARAM  = "VisualEncodingTimeEquationClass";
+  static final public String                      ENCODING_TIME_EQUATION_PARAM  = "VisualEncodingTimeEquationClass";
 
-  static final public String                                        SEARCHING_TIME_EQUATION_PARAM = "VisualSearchTimeEquationClass";
+  static final public String                      SEARCHING_TIME_EQUATION_PARAM = "VisualSearchTimeEquationClass";
 
-  static final public String                                        ENABLE_BUFFER_STUFF_PARAM     = "EnableVisualBufferStuff";
+  static final public String                      ENABLE_BUFFER_STUFF_PARAM     = "EnableVisualBufferStuff";
 
-  static private Collection<String>                                 SETABLE_PARAMS;
+  static private Collection<String>               SETABLE_PARAMS;
 
   static
   {
@@ -90,7 +100,7 @@ public abstract class AbstractVisualModule extends AbstractPerceptualModule
     params.add(IPerceptualMemory.NEW_FINST_ONSET_DURATION_TIME_PARAM);
     params.add(IVisualMemory.MOVEMENT_TOLERANCE_PARAM);
     params.add(ENABLE_BUFFER_STUFF_PARAM);
-    params.add(STRICT_SYNCHRONIZATION_PARAM);
+    // params.add(STRICT_SYNCHRONIZATION_PARAM);
     SETABLE_PARAMS = Collections.unmodifiableCollection(params);
   }
 
@@ -116,7 +126,7 @@ public abstract class AbstractVisualModule extends AbstractPerceptualModule
 
   private IChunk                                                    _greaterThanCurrentChunk;
 
-  private boolean                                                   _bufferStuffEnabled           = true;
+  private boolean                                                   _bufferStuffEnabled = true;
 
   private Map<String, String>                                       _parameterMap;
 
@@ -173,8 +183,8 @@ public abstract class AbstractVisualModule extends AbstractPerceptualModule
     setParameter(IVisualMemory.MOVEMENT_TOLERANCE_PARAM, "0.5");
     setParameter(ENCODING_TIME_EQUATION_PARAM,
         DefaultEncodingTimeEquation.class.getName());
-    setParameter(SEARCHING_TIME_EQUATION_PARAM, DefaultSearchTimeEquation.class
-        .getName());
+    setParameter(SEARCHING_TIME_EQUATION_PARAM,
+        DefaultSearchTimeEquation.class.getName());
   }
 
   public void addListener(IVisualModuleListener listener, Executor executor)
@@ -399,8 +409,8 @@ public abstract class AbstractVisualModule extends AbstractPerceptualModule
         }
         catch (Exception e)
         {
-          LOGGER.error("Could not create visual encoding time equation "
-              + value, e);
+          LOGGER.error(
+              "Could not create visual encoding time equation " + value, e);
         }
       else if (SEARCHING_TIME_EQUATION_PARAM.equalsIgnoreCase(key))
         try
@@ -438,7 +448,8 @@ public abstract class AbstractVisualModule extends AbstractPerceptualModule
       {
         if (!_bufferStuffEnabled) return;
 
-        if (getVisualMemory().getLastChangeTime() >= _lastCheckTime)
+        if (getVisualMemory().getLastChangeTime() >= _lastCheckTime
+            && getVisualMemory().getFINSTFeatureMap().hasNew())
         {
           _visualLocationBuffer.checkForBufferStuff();
           _lastCheckTime = event.getSimulationTime();
@@ -463,6 +474,8 @@ public abstract class AbstractVisualModule extends AbstractPerceptualModule
 
       }
 
+      private IChunk _expectedVisualLocation = null;
+
       public void perceptAttended(IPerceptualMemoryModuleEvent event)
       {
         /*
@@ -479,23 +492,70 @@ public abstract class AbstractVisualModule extends AbstractPerceptualModule
         IIdentifier identifier = (IIdentifier) visualChunk
             .getMetaData(IPerceptualEncoder.COMMONREALITY_IDENTIFIER_META_KEY);
         if (identifier != null)
-        {
-          if (LOGGER.isDebugEnabled())
-            LOGGER.debug("assigning finst for " + visualChunk);
-          // _visicon.getVisualMap().getFINSTFeatureMap().flagAsAttended(identifier,
-          // visualChunk, _visicon.getFINSTTimeSpan());
           getVisualMemory().getFINSTFeatureMap().flagAsAttended(identifier,
               visualChunk, getVisualMemory().getFINSTSpan());
-        }
         else if (LOGGER.isDebugEnabled())
-          LOGGER.debug("could not find identifier for " + visualChunk);
+          LOGGER.debug("could not find identifier for " + visualChunk
+              + ", likely due to significant changes between search and encoding.");
 
+        // visual-location
+        IChunk visLocation = AbstractVisualEncoder
+            .getVisualLocation(visualChunk, getVisualMemory());
+
+        if (visLocation != _expectedVisualLocation)
+        {
+          if (LOGGER.isDebugEnabled()) LOGGER.debug(String.format(
+              "Expected %s to be at %s, actually at %s. Synching new location.",
+              identifier, _expectedVisualLocation, visLocation));
+          /*
+           * due to threading, the update activePerceptListener.updated wont be
+           * called until after this, so we have to sync now.
+           */
+          syncVisualLocation(identifier, visualChunk);
+        }
+
+        notifyFixation(visLocation, identifier);
+      }
+
+      private void notifyFixation(IChunk visLocation,
+          IIdentifier fixationIdentifier)
+      {
+        double[] retino = AbstractVisualEncoder.getLocation(visLocation);
+        if (retino != null && fixationIdentifier != null)
+        {
+          // signal
+          Map<String, Object> notificationData = new TreeMap<String, Object>();
+          notificationData.put("fixation.point", retino);
+          notificationData.put("fixation.identifier", fixationIdentifier);
+
+          IAgent agent = ACTRRuntime.getRuntime().getConnector()
+              .getAgent(getModel());
+
+          NotificationMessage message = new NotificationMessage(
+              agent.getIdentifier(), fixationIdentifier.getOwner(),
+              new SimpleMapNotification<String, Object>(
+                  agent.getNotificationManager().createNotificationIdentifier(
+                      "fixation"),
+                  notificationData));
+          agent.send(message);
+        }
       }
 
       public void perceptIndexFound(IPerceptualMemoryModuleEvent event)
       {
-        // TODO Auto-generated method stub
+        IChunk visualLocation = event.getChunk();
+        if (visualLocation != null)
+        {
+          _expectedVisualLocation = visualLocation;
 
+          double[] location = AbstractVisualEncoder.getLocation(visualLocation);
+          IIdentifier identifier = (IIdentifier) visualLocation
+              .getMetaData(IPerceptualMemory.SEARCH_RESULT_IDENTIFIER_KEY);
+
+          if (LOGGER.isDebugEnabled())
+            LOGGER.debug(String.format("%s found @ %s %s", identifier,
+                visualLocation, Arrays.toString(location)));
+        }
       }
 
       public void parameterChanged(IParameterEvent pe)
@@ -505,7 +565,15 @@ public abstract class AbstractVisualModule extends AbstractPerceptualModule
 
       public void trackedObjectMoved(VisualModuleEvent event)
       {
-        // TODO Auto-generated method stub
+        IChunk visualChunk = event.getChunk();
+        if (visualChunk.hasBeenDisposed()) return;
+
+        IIdentifier identifier = (IIdentifier) visualChunk
+            .getMetaData(IPerceptualEncoder.COMMONREALITY_IDENTIFIER_META_KEY);
+
+        IChunk visLocation = AbstractVisualEncoder
+            .getVisualLocation(visualChunk, getVisualMemory());
+        notifyFixation(visLocation, identifier);
 
       }
 
@@ -533,8 +601,8 @@ public abstract class AbstractVisualModule extends AbstractPerceptualModule
         // and it may be needed in the search right now..
         IFINSTFeatureMap finstMap = getVisualMemory().getFINSTFeatureMap();
         if (finstMap != null && !finstMap.isAttended(identifier))
-          finstMap.flagAsNew(identifier, chunk, getVisualMemory()
-              .getNewFINSTOnsetDuration());
+          finstMap.flagAsNew(identifier, chunk,
+              getVisualMemory().getNewFINSTOnsetDuration());
       }
 
       public void reencoded(IIdentifier identifier, IChunk oldChunk,
@@ -551,13 +619,44 @@ public abstract class AbstractVisualModule extends AbstractPerceptualModule
 
       public void updated(IIdentifier identifier, IChunk chunk)
       {
-        // noop
+        // keep visual-location in sync. this is necessary because of visloc
+        syncVisualLocation(identifier, chunk);
       }
 
     };
 
     _visualMemory.addListener(finstListener, ExecutorServices.INLINE_EXECUTOR);
 
+  }
+
+  private void syncVisualLocation(IIdentifier identifier, IChunk chunk)
+  {
+    // keep visual-location in sync. this is necessary because of visloc caching
+    ISymbolicChunk sc = chunk.getSymbolicChunk();
+    IChunk visualLocation = (IChunk) sc.getSlot(SCREEN_POSITION_SLOT)
+        .getValue();
+    if (visualLocation != null)
+    {
+      IAfferentObject percept = ACTRRuntime.getRuntime().getConnector()
+          .getAgent(getModel()).getAfferentObjectManager().get(identifier);
+      if (percept != null)
+      {
+        Point2D retinalLocation = AbstractVisualFeatureMap.getHandler()
+            .getRetinalLocation(percept);
+        try
+        {
+          visualLocation.getWriteLock().lock();
+          ((IMutableSlot) visualLocation.getSymbolicChunk()
+              .getSlot(SCREEN_X_SLOT)).setValue(retinalLocation.getX());
+          ((IMutableSlot) visualLocation.getSymbolicChunk()
+              .getSlot(SCREEN_Y_SLOT)).setValue(retinalLocation.getY());
+        }
+        finally
+        {
+          visualLocation.getWriteLock().unlock();
+        }
+      }
+    }
   }
 
   @Override
@@ -567,8 +666,8 @@ public abstract class AbstractVisualModule extends AbstractPerceptualModule
     /*
      * attach the visual memory
      */
-    _visualMemory.attach(ACTRRuntime.getRuntime().getConnector()
-        .getAgent(getModel()));
+    _visualMemory
+        .attach(ACTRRuntime.getRuntime().getConnector().getAgent(getModel()));
   }
 
   @Override

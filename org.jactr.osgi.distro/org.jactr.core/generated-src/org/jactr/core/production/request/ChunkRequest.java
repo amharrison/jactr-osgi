@@ -6,18 +6,17 @@ package org.jactr.core.production.request;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.chunk.IChunk;
 import org.jactr.core.slot.ISlot;
+import org.slf4j.LoggerFactory;
 
 public class ChunkRequest extends ChunkTypeRequest
 {
   /**
    * Logger definition
    */
-  static private final transient Log LOGGER = LogFactory
-                                                .getLog(ChunkRequest.class);
+  static private final transient org.slf4j.Logger LOGGER = LoggerFactory
+                                                .getLogger(ChunkRequest.class);
   
   private IChunk _chunk;
   
@@ -33,6 +32,12 @@ public class ChunkRequest extends ChunkTypeRequest
     _chunk = chunk;
   }
   
+  @Override
+  public ChunkRequest clone()
+  {
+    return new ChunkRequest(_chunk, _slots);
+  }
+
   public IChunk getChunk()
   {
     return _chunk;

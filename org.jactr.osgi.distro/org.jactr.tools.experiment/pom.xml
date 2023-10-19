@@ -30,8 +30,9 @@
 							<includeArtifactIds>org.jactr.tools.experiment</includeArtifactIds>
 							<classifier>sources</classifier>
 							<failOnMissingClassifierArtifact>false</failOnMissingClassifierArtifact>
-							<outputDirectory>${project.build.directory}/../generated-src/</outputDirectory>
-							<overWrite>true</overWrite>
+							<outputDirectory>${project.directory}/../generated-src/</outputDirectory>
+							<overWriteIfNewer>true</overWriteIfNewer>
+							<excludes>**/maven/</excludes>
 						</configuration>
 					</execution>
 				</executions>

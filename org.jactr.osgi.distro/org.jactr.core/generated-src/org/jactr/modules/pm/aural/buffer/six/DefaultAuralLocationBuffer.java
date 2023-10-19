@@ -13,23 +13,23 @@
  */
 package org.jactr.modules.pm.aural.buffer.six;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+ 
 import org.jactr.core.buffer.delegate.ExpandChunkRequestDelegate;
 import org.jactr.core.chunk.IChunk;
 import org.jactr.core.chunk.ISymbolicChunk;
 import org.jactr.core.chunktype.IChunkType;
 import org.jactr.core.logging.Logger;
 import org.jactr.core.model.IModel;
+import org.jactr.core.module.procedural.five.learning.ICompilableContext;
+import org.jactr.core.module.procedural.six.learning.DefaultCompilableContext;
 import org.jactr.core.production.request.ChunkTypeRequest;
 import org.jactr.core.queue.ITimedEvent;
-import org.jactr.core.slot.BasicSlot;
 import org.jactr.core.slot.IMutableSlot;
 import org.jactr.modules.pm.aural.IAuralModule;
 import org.jactr.modules.pm.aural.buffer.IAuralLocationBuffer;
 import org.jactr.modules.pm.aural.buffer.processor.AuralSearchRequestDelegate;
-import org.jactr.modules.pm.buffer.IPerceptualBuffer;
 import org.jactr.modules.pm.common.buffer.AbstractPMActivationBuffer6;
+import org.slf4j.LoggerFactory;
 
 /**
  * Supports clearing unique fields of the audio-event permiting merging.
@@ -42,14 +42,16 @@ public class DefaultAuralLocationBuffer extends AbstractPMActivationBuffer6
   /**
    * logger definition
    */
-  static private final Log LOGGER           = LogFactory
-                                                .getLog(DefaultAuralLocationBuffer.class);
+  static private final org.slf4j.Logger LOGGER           = LoggerFactory
+                                                .getLogger(DefaultAuralLocationBuffer.class);
 
   protected ITimedEvent    _pendingScan;
 
   protected boolean        _stuffPending;
 
   protected boolean        _nullUniqueSlots = true;
+
+  protected ChunkTypeRequest            _defaultBufferStuffSearch;
 
   /**
    * @param name
@@ -69,6 +71,16 @@ public class DefaultAuralLocationBuffer extends AbstractPMActivationBuffer6
   public boolean isCompressAudioEventsEnabled()
   {
     return _nullUniqueSlots;
+  }
+
+  public ChunkTypeRequest getBufferStuffSearchRequest()
+  {
+    return _defaultBufferStuffSearch;
+  }
+
+  public void setBufferStuffSearchRequest(ChunkTypeRequest request)
+  {
+    _defaultBufferStuffSearch = request;
   }
 
   @Override
@@ -122,7 +134,7 @@ public class DefaultAuralLocationBuffer extends AbstractPMActivationBuffer6
 
   public void checkForBufferStuff()
   {
-    IAuralModule aModule = (IAuralModule) getModule();
+    getModule();
 
     /*
      * can't stuff if full, requested, unrequested
@@ -153,14 +165,11 @@ public class DefaultAuralLocationBuffer extends AbstractPMActivationBuffer6
      * near the center of view note: this is not the same as lisp which looks
      * for the newest left most (WTF?).
      */
-
+    
+    ChunkTypeRequest defaultRequest = getBufferStuffSearchRequest();
     ChunkTypeRequest locationBufferStuffPattern = new ChunkTypeRequest(
-        aModule.getAudioEventChunkType());
-    locationBufferStuffPattern.addSlot(new BasicSlot(
-        IAuralModule.ATTENDED_STATUS_SLOT, getModel().getDeclarativeModule()
-            .getNewChunk()));
-    locationBufferStuffPattern.addSlot(new BasicSlot(
-        IPerceptualBuffer.IS_BUFFER_STUFF_REQUEST, true));
+        defaultRequest.getChunkType(), defaultRequest.getSlots());
+
 
     IModel model = getModel();
     if (Logger.hasLoggers(model))
@@ -211,5 +220,11 @@ public class DefaultAuralLocationBuffer extends AbstractPMActivationBuffer6
       return true;
     }
     return false;
+  }
+
+  @Override
+  public ICompilableContext getCompilableContext()
+  {
+    return new DefaultCompilableContext(true, false, false, false, false, true);
   }
 }

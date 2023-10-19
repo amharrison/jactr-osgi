@@ -8,19 +8,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListSet;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.jactr.core.utils.recyclable.CollectionPooledObjectFactory;
-import org.jactr.core.utils.recyclable.PooledRecycableFactory;
 import org.jactr.core.utils.recyclable.RecyclableFactory;
+import org.jactr.core.utils.recyclable.ThreadLocalFactory;
+import org.slf4j.LoggerFactory;
 
 public class SkipListSetFactory
 {
   /**
    * Logger definition
    */
-  static private final transient Log                                             LOGGER                 = LogFactory
-      .getLog(SkipListSetFactory.class);
+  static private final transient org.slf4j.Logger                                      LOGGER                 = LoggerFactory
+      .getLogger(SkipListSetFactory.class);
 
   static private final Map<Comparator<?>, RecyclableFactory<ConcurrentSkipListSet<?>>> _factoriesByComparator = new HashMap<Comparator<?>, RecyclableFactory<ConcurrentSkipListSet<?>>>();
 
@@ -49,10 +47,16 @@ public class SkipListSetFactory
 //        // noop
 //      }
 //    };
-    return new PooledRecycableFactory<ConcurrentSkipListSet<?>>(
-        new CollectionPooledObjectFactory<>(() -> {
-          return new ConcurrentSkipListSet(comparator);
-        }));
+//    return new PooledRecycableFactory<ConcurrentSkipListSet<?>>(
+//        new CollectionPooledObjectFactory<>(() -> {
+//          return new ConcurrentSkipListSet(comparator);
+//        }));
+//
+    return new ThreadLocalFactory<ConcurrentSkipListSet<?>>(() -> {
+      return new ConcurrentSkipListSet(comparator);
+    }, (obj) -> {
+      obj.clear();
+    }, null);
   }
 
   @SuppressWarnings({ "unchecked", "rawtypes" })

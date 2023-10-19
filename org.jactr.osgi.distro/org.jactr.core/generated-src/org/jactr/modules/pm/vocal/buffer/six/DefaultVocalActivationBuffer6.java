@@ -1,14 +1,11 @@
 package org.jactr.modules.pm.vocal.buffer.six;
 
-/*
- * default logging
- */
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.buffer.IActivationBuffer;
 import org.jactr.core.buffer.delegate.AddChunkRequestDelegate;
 import org.jactr.core.chunktype.IChunkType;
 import org.jactr.core.module.declarative.IDeclarativeModule;
+import org.jactr.core.module.procedural.five.learning.ICompilableContext;
+import org.jactr.core.module.procedural.six.learning.DefaultCompilableContext;
 import org.jactr.modules.pm.common.buffer.AbstractPMActivationBuffer6;
 import org.jactr.modules.pm.vocal.AbstractVocalModule;
 import org.jactr.modules.pm.vocal.IVocalModule;
@@ -16,14 +13,20 @@ import org.jactr.modules.pm.vocal.buffer.IVocalActivationBuffer;
 import org.jactr.modules.pm.vocal.buffer.processor.ClearRequestDelegate;
 import org.jactr.modules.pm.vocal.buffer.processor.SpeechRequestDelegate;
 
+/*
+ * default logging
+ */
+ 
+import org.slf4j.LoggerFactory;
+
 public class DefaultVocalActivationBuffer6 extends AbstractPMActivationBuffer6 implements IVocalActivationBuffer
 {
 
   /**
    * Logger definition
    */
-  static private final transient Log LOGGER = LogFactory
-                                                .getLog(DefaultVocalActivationBuffer6.class);
+  static private final transient org.slf4j.Logger LOGGER = LoggerFactory
+                                                .getLogger(DefaultVocalActivationBuffer6.class);
 
   public DefaultVocalActivationBuffer6(AbstractVocalModule module)
   {
@@ -53,9 +56,9 @@ public class DefaultVocalActivationBuffer6 extends AbstractPMActivationBuffer6 i
       
       AbstractVocalModule module = (AbstractVocalModule) getModule();
       
-//      addRequestDelegate(new SpeechRequestDelegate(module.getSpeakChunkType(), true, module));
-//      addRequestDelegate(new SpeechRequestDelegate(module.getSubvocalizeChunkType(), false, module));
       addRequestDelegate(new SpeechRequestDelegate(module, module.getSpeakChunkType()));
+      addRequestDelegate(
+          new SpeechRequestDelegate(module, module.getSubvocalizeChunkType()));
     }
     catch (Exception e)
     {
@@ -68,6 +71,12 @@ public class DefaultVocalActivationBuffer6 extends AbstractPMActivationBuffer6 i
   protected boolean isValidChunkType(IChunkType chunkType)
   {
     return false;
+  }
+
+  @Override
+  public ICompilableContext getCompilableContext()
+  {
+    return new DefaultCompilableContext(false, false, true, false, true, false);
   }
 
 }

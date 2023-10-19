@@ -86,41 +86,11 @@ If the Library as you received it specifies that a proxy can decide whether futu
    </url>
 
    <requires>
-      <import plugin="org.eclipse.core.runtime" version="3.14.0" match="greaterOrEqual"/>
-      <import plugin="org.eclipse.equinox.launcher"/>
-      <import plugin="org.eclipse.equinox.app"/>
-      <import plugin="org.eclipse.osgi.services"/>
-      <import plugin="org.eclipse.osgi.util"/>
-      <import plugin="org.apache.commons.cli" version="1.2.0" match="greaterOrEqual"/>
-      <import plugin="org.eclipse.equinox.registry"/>
-      <import plugin="org.eclipse.osgi"/>
-      <import plugin="org.apache.commons.logging" version="1.1.1" match="greaterOrEqual"/>
-      <import plugin="org.commonreality.api" version="1.5.1" match="greaterOrEqual"/>
-      <import plugin="org.commonreality.core" version="1.5.1" match="greaterOrEqual"/>
-      <import plugin="org.jactr.core" version="2.5.1" match="greaterOrEqual"/>
-      <import plugin="org.jactr.io" version="2.5.1" match="greaterOrEqual"/>
-      <import plugin="org.jactr.tools" version="2.5.1" match="greaterOrEqual"/>
-      <import plugin="org.commonreality.time" version="1.5.1" match="greaterOrEqual"/>
-      <import plugin="org.eclipse.collections" version="9.2.0" match="greaterOrEqual"/>
-      <import plugin="org.apache.commons.collections" version="3.2.2" match="greaterOrEqual"/>
-      <import plugin="org.commonreality.modalities" version="1.5.1" match="greaterOrEqual"/>
-      <import plugin="org.commonreality.net" version="1.5.1" match="greaterOrEqual"/>
-      <import plugin="org.commonreality.sensors" version="1.5.1" match="greaterOrEqual"/>
-      <import plugin="org.apache.commons.lang" version="2.6.0" match="greaterOrEqual"/>
-      <import plugin="org.apache.commons.math" version="2.1.0" match="greaterOrEqual"/>
-      <import plugin="org.commonreality.netty" version="1.5.1" match="greaterOrEqual"/>
-      <import plugin="org.commonreality.sensors.xml" version="1.5.1" match="greaterOrEqual"/>
+      <import feature="org.commonreality.osgi.feature" version="1.5.1.qualifier"/>
    </requires>
 
    <plugin
          id="org.jactr.launching"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"
-         unpack="false"/>
-
-   <plugin
-         id="org.jactr.launching.source"
          download-size="0"
          install-size="0"
          version="0.0.0"
@@ -174,54 +144,12 @@ If the Library as you received it specifies that a proxy can decide whether futu
          install-size="0"
          version="0.0.0"
          unpack="false"/>
-         
-    <plugin
-         id="org.jactr.core.source"
+
+   <plugin
+         id="org.jactr.io2"
          download-size="0"
          install-size="0"
          version="0.0.0"
          unpack="false"/>
-
-   <plugin
-         id="org.jactr.io.source"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"
-         unpack="false"/>
-
-   <plugin
-         id="org.jactr.modules.threaded.source"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"
-         unpack="false"/>
-
-   <plugin
-         id="org.jactr.modules.timing.source"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"
-         unpack="false"/>
-
-   <plugin
-         id="org.jactr.osgi.source"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"
-         unpack="false"/>
-
-   <plugin
-         id="org.jactr.tools.source"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"
-         unpack="false"/>
-
-   <plugin
-         id="org.jactr.tools.experiment.source"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"
-         unpack="false"/>      
 
 </feature>

@@ -1,16 +1,12 @@
 package org.jactr.modules.pm.motor.buffer.six;
 
-/*
- * default logging
- */
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.commonreality.object.IEfferentObject;
 import org.jactr.core.buffer.delegate.AddChunkTypeRequestDelegate;
 import org.jactr.core.buffer.delegate.ExpandChunkRequestDelegate;
 import org.jactr.core.chunktype.IChunkType;
 import org.jactr.core.module.IllegalModuleStateException;
+import org.jactr.core.module.procedural.five.learning.ICompilableContext;
+import org.jactr.core.module.procedural.six.learning.DefaultCompilableContext;
 import org.jactr.core.production.VariableBindings;
 import org.jactr.core.production.condition.CannotMatchException;
 import org.jactr.core.production.condition.match.GeneralMatchFailure;
@@ -28,6 +24,12 @@ import org.jactr.modules.pm.motor.buffer.processor.MotorClearRequestDelegate;
 import org.jactr.modules.pm.motor.buffer.processor.MotorRequestDelegate;
 import org.jactr.modules.pm.motor.managers.MuscleState;
 
+/*
+ * default logging
+ */
+
+import org.slf4j.LoggerFactory;
+
 public class DefaultMotorActivationBuffer6 extends AbstractPMActivationBuffer6
     implements IMotorActivationBuffer
 {
@@ -35,8 +37,8 @@ public class DefaultMotorActivationBuffer6 extends AbstractPMActivationBuffer6
   /**
    * Logger definition
    */
-  static private final transient Log LOGGER = LogFactory
-                                                .getLog(DefaultMotorActivationBuffer6.class);
+  static private final transient org.slf4j.Logger LOGGER = LoggerFactory
+                                                .getLogger(DefaultMotorActivationBuffer6.class);
 
   public DefaultMotorActivationBuffer6(String name, AbstractMotorModule module)
   {
@@ -150,6 +152,12 @@ public class DefaultMotorActivationBuffer6 extends AbstractPMActivationBuffer6
 
     return request.bind(getModel(), muscleName, slotContainer, bindings,
         isIterative);
+  }
+
+  @Override
+  public ICompilableContext getCompilableContext()
+  {
+    return new DefaultCompilableContext(false, false, true, false, true, false);
   }
 
 }

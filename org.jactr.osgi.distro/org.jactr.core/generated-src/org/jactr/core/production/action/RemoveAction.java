@@ -16,8 +16,6 @@ package org.jactr.core.production.action;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.buffer.IActivationBuffer;
 import org.jactr.core.chunk.IChunk;
 import org.jactr.core.logging.Logger;
@@ -30,6 +28,7 @@ import org.jactr.core.queue.ITimedEvent;
 import org.jactr.core.queue.timedevents.AbstractTimedEvent;
 import org.jactr.core.queue.timedevents.IBufferBasedTimedEvent;
 import org.jactr.core.slot.ISlot;
+import org.slf4j.LoggerFactory;
 
 /**
  * The remove action does just that. It removes a chunk from a named buffer.
@@ -41,7 +40,7 @@ public class RemoveAction extends ModifyAction implements IBufferAction
 {
 
   // logger class
-  private static transient Log LOGGER = LogFactory.getLog(RemoveAction.class
+  private static transient org.slf4j.Logger LOGGER = LoggerFactory.getLogger(RemoveAction.class
                                           .getName());
 
   /**
@@ -216,4 +215,5 @@ public class RemoveAction extends ModifyAction implements IBufferAction
       return _chunkToRemove;
     }
   }
+
 }

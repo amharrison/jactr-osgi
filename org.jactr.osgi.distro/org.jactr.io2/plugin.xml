@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+ <extension-point id="compilationunitprovider" name="CompilationUnitProvider" schema="schema/compilationunitprovider.exsd"/>
+ <extension-point id="astgenerator" name="AST Generator" schema="schema/astgenerator.exsd"/>
+ <extension-point id="sourcegenerator" name="Source Generator" schema="schema/sourcegenerator.exsd"/>
+
+</plugin>

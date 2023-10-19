@@ -8,78 +8,101 @@
 	<packaging>pom</packaging>
 
 	<properties>
-		<tycho-version>1.2.0</tycho-version>
+		<tycho-version>4.0.3</tycho-version>
 	</properties>
+
+	<pluginRepositories>
+		<pluginRepository>
+			<id>apache.snapshots</id>
+			<url>https://repository.apache.org/snapshots/</url>
+		</pluginRepository>
+		<pluginRepository>
+			<id>mojo.snapshots</id>
+			<url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+		</pluginRepository>
+		<pluginRepository>
+			<id>org.eclipse.SNAPSHOTS</id>
+			<url>https://repo.eclipse.org/content/repositories/eclipse-snapshots/</url>
+		</pluginRepository>
+		
+	</pluginRepositories>
 
 	<repositories>
 		<repository>
-			<id>photon</id>
-			<layout>p2</layout>
-			<!-- should be photon but as of 9.13 photon's p2 site is borked -->
-			<url>http://download.eclipse.org/eclipse/updates/4.8</url>
-		</repository>
-		<repository>
 			<id>orbit</id>
 			<layout>p2</layout>
-			<url>http://download.eclipse.org/tools/orbit/downloads/drops/R20180606145124/repository</url>
+			<url>https://download.eclipse.org/tools/orbit/downloads/drops/R20230531010532/repository</url>
 		</repository>
 		<repository>
 			<id>milestones</id>
 			<layout>p2</layout>
-			<url>http://download.eclipse.org/eclipse/updates/milestones</url>
+			<url>https://download.eclipse.org/eclipse/updates/4.29</url>
 		</repository>
 		<repository>
 			<id>collections</id>
 			<layout>p2</layout>
-			<url>http://download.eclipse.org/collections/9.2.0/repository</url>
+			<url>https://download.eclipse.org/collections/10.4.0/repository</url>
 		</repository>
 
 	</repositories>
 
 	<build>
+		<sourceDirectory>generated-src</sourceDirectory>
 		<plugins>
 			<plugin>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.7.0</version>
+				<groupId>org.eclipse.tycho</groupId>
+				<artifactId>tycho-compiler-plugin</artifactId>
+				<version>${tycho-version}</version>
+				<dependencies>
+					<!-- temporary fix until tycho supports 21 -->
+					<dependency>
+						<groupId>org.eclipse.jdt</groupId>
+						<artifactId>ecj</artifactId>
+						<version>3.36.0-SNAPSHOT</version>
+					</dependency>
+				</dependencies>
 				<configuration>
-					<source>1.8</source>
-					<target>1.8</target>
+					<pomOnlyDependencies>ignore</pomOnlyDependencies>
+					<useProjectSettings>true</useProjectSettings>
+					<release>21</release>
+					<!-- 
+					<fork>true</fork>
+					<executable>/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home</executable>
+					<useJDK>BREE</useJDK>
+					-->
+					<compilerVersion>21</compilerVersion>
+					<verbose>true</verbose>
+
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.eclipse.tycho</groupId>
+				<artifactId>tycho-maven-plugin</artifactId>
+				<version>${tycho-version}</version>
+				<extensions>true</extensions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-toolchains-plugin</artifactId>
+				<version>1.1</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>toolchain</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<toolchains>
+						<jdk>
+							<version>21</version>
+							<vendor>temurin</vendor>
+						</jdk>
+					</toolchains>
 				</configuration>
 			</plugin>
 
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>build-helper-maven-plugin</artifactId>
-				<version>3.0.0</version>
-				<executions>
-					<execution>
-						<phase>generate-sources</phase>
-						<goals>
-							<goal>add-source</goal>
-						</goals>
-						<configuration>
-							<sources>
-								<source>generated-src</source>
-							</sources>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
 
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-source-plugin</artifactId>
-				<version>3.0.1</version>
-				<executions>
-					<execution>
-						<id>attach-sources</id>
-						<phase>verify</phase>
-						<goals>
-							<goal>jar-no-fork</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
 			<plugin>
 				<artifactId>maven-clean-plugin</artifactId>
 				<version>3.1.0</version>
@@ -96,13 +119,9 @@
 				</configuration>
 			</plugin>
 			<!-- -->
-			<plugin>
-				<groupId>org.eclipse.tycho</groupId>
-				<artifactId>tycho-maven-plugin</artifactId>
-				<version>${tycho-version}</version>
-				<extensions>true</extensions>
-			</plugin>
-			<!-- -->
+
+			<!--
+			 -->
 			<plugin>
 				<groupId>org.eclipse.tycho</groupId>
 				<artifactId>tycho-source-plugin</artifactId>
@@ -114,10 +133,16 @@
 							<goal>plugin-source</goal>
 						</goals>
 					</execution>
+					<execution>
+						<id>feature-source</id>
+						<phase>package</phase>
+						<goals>
+							<goal>feature-source</goal>
+						</goals>
+					</execution>
 				</executions>
 				<configuration>
-					<distinctSourceRoots>true</distinctSourceRoots>
-					<useDefaultManifest>true</useDefaultManifest>
+					<sourceBundle>true</sourceBundle>
 				</configuration>
 			</plugin>
 
@@ -127,8 +152,50 @@
 				<version>${tycho-version}</version>
 				<configuration>
 					<pomDependencies>consider</pomDependencies>
+					<target>
+						<file>../jactrTarget.target</file>
+					</target>
 				</configuration>
 			</plugin>
+
+			<!-- 
+-->
+			<plugin>
+				<groupId>org.eclipse.tycho</groupId>
+				<artifactId>tycho-p2-plugin</artifactId>
+				<version>${tycho-version}</version>
+				<executions>
+					<execution>
+						<id>attach-p2-metadata</id>
+						<phase>package</phase>
+						<goals>
+							<goal>p2-metadata</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.eclipse.tycho</groupId>
+				<artifactId>tycho-packaging-plugin</artifactId>
+				<version>${tycho-version}</version>
+				<!-- 
+				<configuration>
+					<deriveHeaderFromProject>false</deriveHeaderFromProject>
+				</configuration>
+				-->
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<id>package-feature</id>
+						<configuration>
+							<finalName>
+								${project.artifactId}_${unqualifiedVersion}.${buildQualifier}</finalName>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
 		</plugins>
 	</build>
 	<modules>
@@ -137,10 +204,15 @@
 		<module>org.jactr.osgi.feature</module>
 		<module>org.jactr.update</module>
 		<module>org.jactr.core</module>
+		<module>org.jactr.io2</module>
 		<module>org.jactr.io</module>
 		<module>org.jactr.tools</module>
 		<module>org.jactr.tools.experiment</module>
 		<module>org.jactr.modules.timing</module>
 		<module>org.jactr.modules.threaded</module>
 	</modules>
+
+	<dependencies>
+
+	</dependencies>
 </project>

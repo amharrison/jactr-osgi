@@ -11,12 +11,4 @@
 	</parent>
 
 	<packaging>eclipse-feature</packaging>
-
-
-
-	<build>
-		<plugins>
-		</plugins>
-	</build>
-
 </project>

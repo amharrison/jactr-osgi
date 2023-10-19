@@ -8,8 +8,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jactr.core.chunk.IChunk;
 import org.jactr.core.logging.Logger;
 import org.jactr.core.model.IModel;
@@ -22,6 +20,7 @@ import org.jactr.core.queue.ITimedEvent;
 import org.jactr.core.queue.timedevents.AbstractTimedEvent;
 import org.jactr.core.runtime.ACTRRuntime;
 import org.jactr.core.slot.IMutableSlot;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author harrison To change the template for this generated type comment go to
@@ -30,7 +29,7 @@ import org.jactr.core.slot.IMutableSlot;
 public class ScriptSupport
 {
 
-  static private transient Log LOGGER = LogFactory.getLog(ScriptSupport.class);
+  static private transient org.slf4j.Logger LOGGER = LoggerFactory.getLogger(ScriptSupport.class);
 
   final IScriptableFactory     _factory;
 
@@ -112,7 +111,7 @@ public class ScriptSupport
     return _bindings.get(variableName);
   }
 
-  public void requires(Object... variableNames) throws CannotMatchException
+  public void requires(String... variableNames) throws CannotMatchException
   {
     for (Object variableName : variableNames)
     {
