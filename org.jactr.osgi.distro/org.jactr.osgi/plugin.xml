@@ -821,4 +821,20 @@ This is provided here for diagnosing individual model runs. Iterative runs autom
             name="Send to IDE">
       </sink>
    </extension>
+   <extension
+         point="org.jactr.osgi.instruments">
+      <instrument
+            class="org.jactr.io2.tools.production.ProductionCompilationListener"
+            hidden="false"
+            name="Production Compilation Logger"
+            requiresClasspath="false">
+         <parameter
+               name="attach"
+               value="all">
+         </parameter>
+         <description>
+            description body text
+         </description>
+      </instrument>
+   </extension>
 </plugin>

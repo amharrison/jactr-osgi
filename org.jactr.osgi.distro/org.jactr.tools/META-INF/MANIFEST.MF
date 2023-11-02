@@ -21,7 +21,8 @@ Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Automatic-Module-Name: org.commonreality.osgi
 Eclipse-BuddyPolicy: registered
 Eclipse-RegisterBuddy: org.apache.log4j,
- org.commonreality.netty
+ org.commonreality.netty,
+ org.jactr.core
 Bundle-ClassPath: .
 Export-Package: org.jactr.entry,
  org.jactr.entry.iterative,
@@ -54,6 +55,8 @@ Export-Package: org.jactr.entry,
  org.jactr.tools.async.shadow,
  org.jactr.tools.async.shadow.handlers,
  org.jactr.tools.async.sync,
+ org.jactr.tools.bloom,
+ org.jactr.tools.bloom.funnels,
  org.jactr.tools.change,
  org.jactr.tools.deadlock,
  org.jactr.tools.grapher.core,
